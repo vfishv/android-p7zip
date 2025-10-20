@@ -1,12 +1,13 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 36
+    namespace 'mao.p7zip'
 
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 31
+        //targetSdkVersion 31
 
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
