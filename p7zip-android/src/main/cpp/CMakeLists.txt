@@ -458,3 +458,4 @@ find_library(log-lib log)
 add_library(p7zip-jni SHARED ${JBINDING_CPP_FILES} ${P7ZIP_SRC_FILES} ${MYBINDING} RegisterNative.cxx)
 
 target_link_libraries(p7zip-jni ${log-lib} dl c)
+target_link_options(p7zip-jni PRIVATE "-Wl,-z,max-page-size=16384")
