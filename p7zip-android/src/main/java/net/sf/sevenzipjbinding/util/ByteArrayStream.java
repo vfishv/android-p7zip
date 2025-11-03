@@ -1,19 +1,18 @@
 package net.sf.sevenzipjbinding.util;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
 import net.sf.sevenzipjbinding.IInStream;
 import net.sf.sevenzipjbinding.IOutStream;
 import net.sf.sevenzipjbinding.ISeekableStream;
 import net.sf.sevenzipjbinding.ISequentialInStream;
 import net.sf.sevenzipjbinding.ISequentialOutStream;
 import net.sf.sevenzipjbinding.SevenZipException;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A byte array based implementation of
@@ -24,10 +23,10 @@ import java.util.List;
  * <li>{@link IInStream}</li>
  * <li>{@link ISeekableStream}</li>
  * </ul>
- * <p>
+ * 
  * Provide read/write access to the content represented as a byte array. Provide bridge to {@link InputStream} and
  * {@link OutputStream} through various methods.
- *
+ * 
  * @author Boris Brodski
  * @since 9.20-2.00
  */
@@ -50,14 +49,19 @@ public class ByteArrayStream implements IInStream, IOutStream {
     /**
      * Create new empty instance of ByteArrayStream with content <code>content</code> specifying maximal length of the
      * stored data.
-     *
-     * @param content          content to initialize byte array stream with. The current position will be set at the beginning of the
-     *                         stream.
-     * @param copyContentArray <code>true</code> - copy <code>newContent</code> byte array, so the original array can be modified
-     *                         safely, without affecting the byte stream<br>
-     *                         <code>false</code> - don't copy byte array <code>newContent</code>. Any change to the byte array
-     *                         <code>newContent</code> will be reflected by the byte array stream.
-     * @param maxSize          maximal length of the stored data. Use {@link Integer#MAX_VALUE} to disable maximal length constraint.
+     * 
+     * @param content
+     *            content to initialize byte array stream with. The current position will be set at the beginning of the
+     *            stream.
+     * 
+     * @param copyContentArray
+     *            <code>true</code> - copy <code>newContent</code> byte array, so the original array can be modified
+     *            safely, without affecting the byte stream<br>
+     *            <code>false</code> - don't copy byte array <code>newContent</code>. Any change to the byte array
+     *            <code>newContent</code> will be reflected by the byte array stream.
+     * 
+     * @param maxSize
+     *            maximal length of the stored data. Use {@link Integer#MAX_VALUE} to disable maximal length constraint.
      */
     public ByteArrayStream(byte[] content, boolean copyContentArray, int maxSize) {
         this(1024, maxSize);
@@ -70,13 +74,16 @@ public class ByteArrayStream implements IInStream, IOutStream {
      * <b>WARNING:</b> The maximal length of the byte array stream will be set to <code>content.length</code>. This
      * means, that no more data can be added to such byte array stream. However it's still possible to override or
      * truncate existing data.
-     *
-     * @param content          content to initialize byte array stream with. The current position will be set at the beginning of the
-     *                         stream.
-     * @param copyContentArray <code>true</code> - copy <code>newContent</code> byte array, so the original array can be modified
-     *                         safely, without affecting the byte stream<br>
-     *                         <code>false</code> - don't copy byte array <code>newContent</code>. Any change to the byte array
-     *                         <code>newContent</code> will be reflected by the byte array stream.
+     * 
+     * @param content
+     *            content to initialize byte array stream with. The current position will be set at the beginning of the
+     *            stream.
+     * 
+     * @param copyContentArray
+     *            <code>true</code> - copy <code>newContent</code> byte array, so the original array can be modified
+     *            safely, without affecting the byte stream<br>
+     *            <code>false</code> - don't copy byte array <code>newContent</code>. Any change to the byte array
+     *            <code>newContent</code> will be reflected by the byte array stream.
      */
     public ByteArrayStream(byte[] content, boolean copyContentArray) {
         this(1024 > content.length ? content.length : 1024, content.length);
@@ -85,8 +92,9 @@ public class ByteArrayStream implements IInStream, IOutStream {
 
     /**
      * Create new empty instance of ByteArrayStream specifying maximal length of the stored data.
-     *
-     * @param maxSize maximal length of the stored data. Use {@link Integer#MAX_VALUE} to disable maximal length constraint.
+     * 
+     * @param maxSize
+     *            maximal length of the stored data. Use {@link Integer#MAX_VALUE} to disable maximal length constraint.
      */
     public ByteArrayStream(int maxSize) {
         this(1024, maxSize);
@@ -94,10 +102,12 @@ public class ByteArrayStream implements IInStream, IOutStream {
 
     /**
      * Create new empty instance of ByteArrayStream specifying maximal length of the stored data.
-     *
-     * @param maxSize     maximal length of the stored data. Use {@link Integer#MAX_VALUE} to disable maximal length constraint.
-     * @param initialSize size of the first data chunk. The first data chunk (byte array) will be allocated after first writing
-     *                    request.
+     * 
+     * @param maxSize
+     *            maximal length of the stored data. Use {@link Integer#MAX_VALUE} to disable maximal length constraint.
+     * @param initialSize
+     *            size of the first data chunk. The first data chunk (byte array) will be allocated after first writing
+     *            request.
      */
     public ByteArrayStream(int initialSize, int maxSize) {
         this.initialSize = initialSize;
@@ -123,16 +133,8 @@ public class ByteArrayStream implements IInStream, IOutStream {
     /**
      * {@inheritDoc}
      */
-    public int read(byte[] data, int len) throws SevenZipException {
-        return read(data, 0, len);
-    }
-
-    @Override
-    public int read(ByteBuffer src, int len) throws SevenZipException {
-        byte[] bytes = new byte[len];
-        read(bytes, 0, len);
-        src.put(bytes);
-        return len;
+    public int read(byte[] data) throws SevenZipException {
+        return read(data, 0, data.length);
     }
 
     /**
@@ -141,13 +143,19 @@ public class ByteArrayStream implements IInStream, IOutStream {
      * from the stream. The read bytes will be stored in the <code>data</code> array beginning from the position
      * <code>startPosition</code><br>
      * <br>
-     *
-     * @param data          buffer to get read data.
-     * @param startPosition position (index) in the array <code>data</code> to store first read byte.
-     * @param length        count of the bytes to read.
+     * 
+     * 
+     * @param data
+     *            buffer to get read data.
+     * @param startPosition
+     *            position (index) in the array <code>data</code> to store first read byte.
+     * @param length
+     *            count of the bytes to read.
+     * 
      * @return amount of bytes written in the <code>data</code> array. 0 - represents end of stream.
-     * @throws IllegalStateException will be thrown, if <code>startPosition</code> is an invalid index for the array <code>data</code> or
-     *                               if <code>startPosition + length > data.length</code>.
+     * @throws IllegalStateException
+     *             will be thrown, if <code>startPosition</code> is an invalid index for the array <code>data</code> or
+     *             if <code>startPosition + length > data.length</code>.
      */
     public synchronized int read(byte[] data, int startPosition, int length) {
         if (startPosition < 0 || length < 0 || data.length < (startPosition + length)) {
@@ -187,10 +195,10 @@ public class ByteArrayStream implements IInStream, IOutStream {
 
     /**
      * Retrieve "End Of Stream" status of the byte array stream.
-     *
+     * 
      * @return <code>true</code> the current position is at the end of the stream. The read operation will return 0, the
-     * write operation will expand the byte array stream.<br>
-     * <code>false</code> -the current position is not at the end of the stream.
+     *         write operation will expand the byte array stream.<br>
+     *         <code>false</code> -the current position is not at the end of the stream.
      */
     public synchronized boolean isEOF() {
         return getCurrentPosition() >= size;
@@ -202,24 +210,24 @@ public class ByteArrayStream implements IInStream, IOutStream {
     public synchronized long seek(long offset, int seekOrigin) throws SevenZipException {
         long newOffset;
         switch (seekOrigin) {
-            case SEEK_SET:
-                newOffset = offset;
-                break;
+        case SEEK_SET:
+            newOffset = offset;
+            break;
 
-            case SEEK_CUR:
-                if (seekToPosition == -1) {
-                    newOffset = currentPosition + offset;
-                } else {
-                    newOffset = seekToPosition + offset;
-                }
-                break;
+        case SEEK_CUR:
+            if (seekToPosition == -1) {
+                newOffset = currentPosition + offset;
+            } else {
+                newOffset = seekToPosition + offset;
+            }
+            break;
 
-            case SEEK_END:
-                newOffset = size + offset;
-                break;
+        case SEEK_END:
+            newOffset = size + offset;
+            break;
 
-            default:
-                throw new SevenZipException("Seek: unknown origin: " + seekOrigin);
+        default:
+            throw new SevenZipException("Seek: unknown origin: " + seekOrigin);
         }
         if (newOffset > maxSize) {
             throw new RuntimeException("Maximal size of the byte array stream was reached by seek to " + newOffset
@@ -308,43 +316,40 @@ public class ByteArrayStream implements IInStream, IOutStream {
     /**
      * {@inheritDoc}
      */
-    public int write(byte[] data, int len) {
-        return write(data, 0, len);
-    }
-
-    @Override
-    public int write(ByteBuffer dst, int len) throws SevenZipException {
-        byte[] bytes = new byte[len];
-        dst.get(bytes);
-        write(bytes, 0, len);
-        return 0;
+    public int write(byte[] data) {
+        return write(data, 0, data.length);
     }
 
     /**
-     * Write <code>len</code> byte from the byte array <code>data</code> beginning from the position
-     * <code>off</code>.
-     *
-     * @param data data to write
-     * @param off  index of the first byte to write (beginning with 0)
-     * @param len  count of bytes to write
+     * Write <code>length</code> byte from the byte array <code>data</code> beginning from the position
+     * <code>startPosition</code>.
+     * 
+     * @param data
+     *            data to write
+     * @param startPosition
+     *            index of the first byte to write (beginning with 0)
+     * @param length
+     *            count of bytes to write
      * @return count of written bytes
-     * @throws IllegalStateException will be thrown, if <code>off</code> is an invalid index for the array <code>data</code> or
-     *                               if <code>off + len > data.len</code>.
+     * 
+     * @throws IllegalStateException
+     *             will be thrown, if <code>startPosition</code> is an invalid index for the array <code>data</code> or
+     *             if <code>startPosition + length > data.length</code>.
      */
-    public synchronized int write(byte[] data, int off, int len) {
-        if (off < 0 || len < 0 || data.length < (off + len)) {
-            throw new IllegalStateException("Invalid start position (" + off + ") and len (" + len
+    public synchronized int write(byte[] data, int startPosition, int length) {
+        if (startPosition < 0 || length < 0 || data.length < (startPosition + length)) {
+            throw new IllegalStateException("Invalid start position (" + startPosition + ") and length (" + length
                     + ")");
         }
-        if (len == 0) {
+        if (length == 0) {
             return 0;
         }
 
         performDelayedSeek();
         startWriting();
 
-        int startPositionInData = off;
-        int dataToWrite = len;
+        int startPositionInData = startPosition;
+        int dataToWrite = length;
         do {
             byte[] chunk = chunkList.get(currentChunkIndex);
             int freeSpaceInChunk = chunk.length - currentPositionInChunk;
@@ -374,7 +379,7 @@ public class ByteArrayStream implements IInStream, IOutStream {
      * doesn't affect the current position of the byte array stream.<br>
      * <b>Warning:</b> The returned instance of the InputStream is still attached to the content of the byte array
      * stream. That means, that any change of the content will be immediately visible through InputStream.
-     *
+     * 
      * @return detached input stream
      */
     public InputStream getDetachedInputStream() {
@@ -385,7 +390,7 @@ public class ByteArrayStream implements IInStream, IOutStream {
      * Get an attached input stream associated with the byte stream content. Reading from returned InputStream is
      * equivalent to reading from the byte array itself. It means, that reading from InputStream started at the current
      * position of the byte array stream and moves it forward.
-     *
+     * 
      * @return {@link InputStream} implementation for this byte array stream
      */
     public InputStream getInputStream() {
@@ -396,7 +401,7 @@ public class ByteArrayStream implements IInStream, IOutStream {
      * Get an attached output stream associated with the byte stream content. Writing to returned OutputStream is
      * equivalent to writing to the byte array itself. It means, that writing to OutputStream affects the current
      * position of the byte array stream.
-     *
+     * 
      * @return {@link OutputStream} implementation for this byte array stream
      */
     public OutputStream getOutputStream() {
@@ -405,11 +410,14 @@ public class ByteArrayStream implements IInStream, IOutStream {
 
     /**
      * Write entire content of the stream to the output stream.
-     *
-     * @param outputStream            output stream to write the entire content to
-     * @param closeStreamAfterWriting <code>true</code> close output stream <code>outputStream</code> by calling
-     *                                {@link OutputStream#close()} method, <code>false</code> don't close output stream
-     * @throws IOException if I/O exception occurs
+     * 
+     * @param outputStream
+     *            output stream to write the entire content to
+     * @param closeStreamAfterWriting
+     *            <code>true</code> close output stream <code>outputStream</code> by calling
+     *            {@link OutputStream#close()} method, <code>false</code> don't close output stream
+     * @throws IOException
+     *             if I/O exception occurs
      */
     public synchronized void writeToOutputStream(OutputStream outputStream, boolean closeStreamAfterWriting)
             throws IOException {
@@ -433,10 +441,13 @@ public class ByteArrayStream implements IInStream, IOutStream {
     /**
      * Write entire data from {@link InputStream} <code>inputStream</code> into byte array stream. The new data will be
      * written at the current position of the byte array stream.
-     *
-     * @param inputStream             input stream to read from.
-     * @param closeStreamAfterReading close input stream after reading.
-     * @throws IOException exceptions during reading and optional closing of input stream.
+     * 
+     * @param inputStream
+     *            input stream to read from.
+     * @param closeStreamAfterReading
+     *            close input stream after reading.
+     * @throws IOException
+     *             exceptions during reading and optional closing of input stream.
      */
     public synchronized void writeFromInputStream(InputStream inputStream, boolean closeStreamAfterReading)
             throws IOException {
@@ -510,7 +521,7 @@ public class ByteArrayStream implements IInStream, IOutStream {
 
     /**
      * Return the size of the byte array stream content in bytes.
-     *
+     * 
      * @return the size of the byte array stream content in bytes.
      */
     public synchronized int getSize() {
@@ -521,11 +532,11 @@ public class ByteArrayStream implements IInStream, IOutStream {
      * Return current position in the byte array stream. The current position determines which part of the data will be
      * affected by next read or write operation. The current position can be changed explicitly by calling
      * {@link #seek(long, int)} method.
-     *
+     * 
      * @return current position in the stream beginning with 0. if current position is equal to the size of the stream
-     * {@link #getSize()}, that means, that end of stream (EOF) was reached. All subsequent read operations will
-     * return EOF. All subsequent write operation will expand the stream until maximal size of stream will be
-     * reached. (See {@link #ByteArrayStream(int)}).
+     *         {@link #getSize()}, that means, that end of stream (EOF) was reached. All subsequent read operations will
+     *         return EOF. All subsequent write operation will expand the stream until maximal size of stream will be
+     *         reached. (See {@link #ByteArrayStream(int)}).
      */
     public synchronized int getCurrentPosition() {
         if (seekToPosition != -1) {
@@ -537,7 +548,7 @@ public class ByteArrayStream implements IInStream, IOutStream {
     /**
      * Return the content of the byte array stream in a new byte array. The current content of the byte array stream
      * copied to the new byte array.
-     *
+     * 
      * @return new array with the entire content of the byte array stream
      */
     public synchronized byte[] getBytes() {
@@ -554,12 +565,14 @@ public class ByteArrayStream implements IInStream, IOutStream {
     /**
      * Reinitialize byte array stream, replace current content with the new content <code>newContent</code> and set the
      * current position to the beginning of the stream.
-     *
-     * @param newContent          new content of the byte array stream
-     * @param copyNewContentArray <code>true</code> - copy <code>newContent</code> byte array, so the original array can be modified
-     *                            safely, without affecting the byte stream<br>
-     *                            <code>false</code> - don't copy byte array <code>newContent</code>. Any change to the byte array
-     *                            <code>newContent</code> will be reflected by the byte array stream.
+     * 
+     * @param newContent
+     *            new content of the byte array stream
+     * @param copyNewContentArray
+     *            <code>true</code> - copy <code>newContent</code> byte array, so the original array can be modified
+     *            safely, without affecting the byte stream<br>
+     *            <code>false</code> - don't copy byte array <code>newContent</code>. Any change to the byte array
+     *            <code>newContent</code> will be reflected by the byte array stream.
      */
     public synchronized void setBytes(byte[] newContent, boolean copyNewContentArray) {
         init();
@@ -660,9 +673,10 @@ public class ByteArrayStream implements IInStream, IOutStream {
 
     /**
      * Empty method. No closing required.
-     *
-     * @throws IOException never
+     * 
      * @see Closeable
+     * @throws IOException
+     *             never
      */
     public void close() throws IOException {
         // no operation

@@ -1,5 +1,7 @@
 package net.sf.sevenzipjbinding.impl;
 
+import java.util.Date;
+
 import net.sf.sevenzipjbinding.IInArchive;
 import net.sf.sevenzipjbinding.IOutArchive;
 import net.sf.sevenzipjbinding.IOutCreateCallback;
@@ -9,13 +11,9 @@ import net.sf.sevenzipjbinding.IOutItemBZip2;
 import net.sf.sevenzipjbinding.IOutItemBase;
 import net.sf.sevenzipjbinding.IOutItemGZip;
 import net.sf.sevenzipjbinding.IOutItemTar;
-import net.sf.sevenzipjbinding.IOutItemXz;
 import net.sf.sevenzipjbinding.IOutItemZip;
-import net.sf.sevenzipjbinding.IOutItemZstd;
 import net.sf.sevenzipjbinding.PropID;
 import net.sf.sevenzipjbinding.SevenZipException;
-
-import java.util.Date;
 
 /**
  * Factory for the {@link OutItem} objects. The <code>E</code> type parameter references one of the archive format
@@ -30,15 +28,17 @@ import java.util.Date;
  * <li> {@link IOutItemZip#getPropertyAttributes()}
  * <li> {@link IOutItemZip#setPropertyAttributes(Integer)}
  * </ul>
- *
- * @param <T> the type of the corresponding archive item data class (out item), like {@link IOutItem7z} or
+ * 
+ * @param <T>
+ *            the type of the corresponding archive item data class (out item), like {@link IOutItem7z} or
  *            {@link IOutItemZip}. Use {@link IOutItemAllFormats} interface to support all available archive formats.
  *            Return type for of the all create methods of the factory.
+ * 
  * @author Boris Brodski
  * @since 9.20-2.00
  */
 public class OutItemFactory<T extends IOutItemBase> {
-    private static final Long ZERO = 0L;
+    private static final Long ZERO = Long.valueOf(0);
     private int index;
     private IOutArchive<?> outArchive;
 
@@ -52,12 +52,12 @@ public class OutItemFactory<T extends IOutItemBase> {
      * <br>
      * This method set default values for an archive item in create archive operations or a new archive item in update
      * archive operations. For existing items in update archive operations use
-     *
+     * 
      * <ul>
      * <li>{@link #createOutItem(int)}
      * <li>{@link #createOutItemAndCloneProperties(int)}
      * </ul>
-     *
+     * 
      * @return a new instance suitable for create archive operations
      */
     @SuppressWarnings("unchecked")
@@ -73,7 +73,7 @@ public class OutItemFactory<T extends IOutItemBase> {
 
     private void fillDefaultValues(OutItem outItem) {
         if (outArchive.getConnectedInArchive() != null) {
-            outItem.setUpdateOldArchiveItemIndex(-1);
+            outItem.setUpdateOldArchiveItemIndex(Integer.valueOf(-1));
             outItem.setUpdateIsNewData(Boolean.TRUE);
             outItem.setUpdateIsNewProperties(Boolean.TRUE);
         }
@@ -81,47 +81,41 @@ public class OutItemFactory<T extends IOutItemBase> {
         outItem.setPropertyLastModificationTime(new Date());
 
         switch (outItem.getArchiveFormat()) {
-            case SEVEN_ZIP:
-                fillDefaultValues7z(outItem);
-                break;
+        case SEVEN_ZIP:
+            fillDefaultValues7z(outItem);
+            break;
 
-            case ZIP:
-                fillDefaultValuesZip(outItem);
-                break;
+        case ZIP:
+            fillDefaultValuesZip(outItem);
+            break;
 
-            case BZIP2:
-                fillDefaultValuesBZip2(outItem);
-                break;
+        case BZIP2:
+            fillDefaultValuesBZip2(outItem);
+            break;
 
-            case GZIP:
-                fillDefaultValuesGZip(outItem);
-                break;
-            case XZ:
-                fillDefaultValuesXz(outItem);
-                break;
+        case GZIP:
+            fillDefaultValuesGZip(outItem);
+            break;
 
-            case TAR:
-                fillDefaultValuesTar(outItem);
-                break;
-            case ZSTD:
-                fillDefaultValuesZstd(outItem);
-                break;
+        case TAR:
+            fillDefaultValuesTar(outItem);
+            break;
 
-            default:
-                throw new RuntimeException("No default values strategy for the archive format '"
-                        + outItem.getArchiveFormat() + "'");
+        default:
+            throw new RuntimeException("No default values strategy for the archive format '"
+                    + outItem.getArchiveFormat() + "'");
         }
     }
 
     private void fillDefaultValues7z(IOutItem7z outItem) {
         outItem.setPropertyIsAnti(Boolean.FALSE);
         outItem.setPropertyIsDir(Boolean.FALSE);
-        outItem.setPropertyAttributes(0);
+        outItem.setPropertyAttributes(Integer.valueOf(0));
     }
 
     private void fillDefaultValuesZip(IOutItemZip outItem) {
         outItem.setPropertyIsDir(Boolean.FALSE);
-        outItem.setPropertyAttributes(0);
+        outItem.setPropertyAttributes(Integer.valueOf(0));
     }
 
     private void fillDefaultValuesBZip2(IOutItemBZip2 outItem) {
@@ -130,14 +124,8 @@ public class OutItemFactory<T extends IOutItemBase> {
     private void fillDefaultValuesGZip(IOutItemGZip outItem) {
     }
 
-    private void fillDefaultValuesXz(IOutItemXz outItem) {
-    }
-
     private void fillDefaultValuesTar(IOutItemTar outItem) {
         outItem.setPropertyIsDir(Boolean.FALSE);
-    }
-
-    private void fillDefaultValuesZstd(IOutItemZstd outItem) {
     }
 
     /**
@@ -157,11 +145,14 @@ public class OutItemFactory<T extends IOutItemBase> {
      * properties supported by the archive format<br>
      * <code>Note:</code> use {@link #createOutItemAndCloneProperties(int)} to change some of the properties
      * </ul>
-     *
-     * @param updateOldArchiveItemIndex index of the existing archive item in the existing (old) archive
+     * 
+     * @param updateOldArchiveItemIndex
+     *            index of the existing archive item in the existing (old) archive
+     * 
      * @return a new instance
-     * @throws SevenZipException 7-Zip or 7-Zip-JBinding error occur. Use {@link SevenZipException#printStackTraceExtended()} to get
-     *                           stack traces of this SevenZipException and of the all thrown 'cause by' exceptions.
+     * @throws SevenZipException
+     *             7-Zip or 7-Zip-JBinding error occur. Use {@link SevenZipException#printStackTraceExtended()} to get
+     *             stack traces of this SevenZipException and of the all thrown 'cause by' exceptions.
      */
     @SuppressWarnings("unchecked")
     public T createOutItem(int updateOldArchiveItemIndex) throws SevenZipException {
@@ -172,7 +163,7 @@ public class OutItemFactory<T extends IOutItemBase> {
 
         OutItem outItem = createOutItemIntern();
 
-        outItem.setUpdateOldArchiveItemIndex(updateOldArchiveItemIndex);
+        outItem.setUpdateOldArchiveItemIndex(Integer.valueOf(updateOldArchiveItemIndex));
         outItem.setUpdateIsNewData(Boolean.FALSE);
         outItem.setUpdateIsNewProperties(Boolean.FALSE);
 
@@ -185,11 +176,14 @@ public class OutItemFactory<T extends IOutItemBase> {
      * This method set default values for an existing archive item in update operations. Also all properties of the old
      * archive item get copied into the new instance and can be modified later on. This method is suitable to change
      * some but not all of the properties of the old archive item during update operations.
-     *
-     * @param updateOldArchiveItemIndex index of the existing archive item in the existing (old) archive
+     * 
+     * @param updateOldArchiveItemIndex
+     *            index of the existing archive item in the existing (old) archive
+     * 
      * @return a new instance
-     * @throws SevenZipException 7-Zip or 7-Zip-JBinding error occur. Use {@link SevenZipException#printStackTraceExtended()} to get
-     *                           stack traces of this SevenZipException and of the all thrown 'cause by' exceptions.
+     * @throws SevenZipException
+     *             7-Zip or 7-Zip-JBinding error occur. Use {@link SevenZipException#printStackTraceExtended()} to get
+     *             stack traces of this SevenZipException and of the all thrown 'cause by' exceptions.
      */
     @SuppressWarnings("unchecked")
     public T createOutItemAndCloneProperties(int updateOldArchiveItemIndex) throws SevenZipException {
@@ -200,7 +194,7 @@ public class OutItemFactory<T extends IOutItemBase> {
 
         OutItem outItem = createOutItemIntern();
 
-        outItem.setUpdateOldArchiveItemIndex(updateOldArchiveItemIndex);
+        outItem.setUpdateOldArchiveItemIndex(Integer.valueOf(updateOldArchiveItemIndex));
         outItem.setUpdateIsNewData(Boolean.FALSE);
         outItem.setUpdateIsNewProperties(Boolean.TRUE);
 

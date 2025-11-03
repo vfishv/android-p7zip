@@ -1,17 +1,13 @@
 package net.sf.sevenzipjbinding.simple.impl;
 
-import androidx.annotation.NonNull;
-
 import net.sf.sevenzipjbinding.IInArchive;
 import net.sf.sevenzipjbinding.SevenZipException;
 import net.sf.sevenzipjbinding.simple.ISimpleInArchive;
 import net.sf.sevenzipjbinding.simple.ISimpleInArchiveItem;
 
-import java.util.Iterator;
-
 /**
  * Standard implementation of {@link ISimpleInArchive}, simplified 7-Zip-JBinding interface.
- *
+ * 
  * @author Boris Brodski
  * @since 4.65-1
  */
@@ -21,8 +17,9 @@ public class SimpleInArchiveImpl implements ISimpleInArchive {
 
     /**
      * Constructing an instance of {@link SimpleInArchiveImpl} from a instance of {@link IInArchive}.
-     *
-     * @param sevenZipInArchive a base instance of {@link IInArchive}
+     * 
+     * @param sevenZipInArchive
+     *            a base instance of {@link IInArchive}
      */
     public SimpleInArchiveImpl(IInArchive sevenZipInArchive) {
         this.sevenZipInArchive = sevenZipInArchive;
@@ -49,31 +46,6 @@ public class SimpleInArchiveImpl implements ISimpleInArchive {
         return result;
     }
 
-    @Override
-    public Iterable<ISimpleInArchiveItem> archiveItems() throws SevenZipException {
-        return new Iterable<ISimpleInArchiveItem>() {
-            private final int numberOfItems = getNumberOfItems();
-
-            @NonNull
-            @Override
-            public Iterator<ISimpleInArchiveItem> iterator() {
-                return new Iterator<ISimpleInArchiveItem>() {
-                    private int index = 0;
-
-                    @Override
-                    public boolean hasNext() {
-                        return index < numberOfItems;
-                    }
-
-                    @Override
-                    public ISimpleInArchiveItem next() {
-                        return new SimpleInArchiveItemImpl(SimpleInArchiveImpl.this, index++);
-                    }
-                };
-            }
-        };
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -84,9 +56,10 @@ public class SimpleInArchiveImpl implements ISimpleInArchive {
 
     /**
      * Tests, if 7-Zip In archive interface can be accessed safely.
-     *
+     * 
      * @return 7-Zip In archive interface
-     * @throws SevenZipException archive can't be accessed any more
+     * @throws SevenZipException
+     *             archive can't be accessed any more
      */
     public IInArchive testAndGetSafeSevenZipInArchive() throws SevenZipException {
         if (wasClosed) {

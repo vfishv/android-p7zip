@@ -5,17 +5,11 @@ import net.sf.sevenzipjbinding.impl.OutArchiveBZip2Impl;
 import net.sf.sevenzipjbinding.impl.OutArchiveGZipImpl;
 import net.sf.sevenzipjbinding.impl.OutArchiveImpl;
 import net.sf.sevenzipjbinding.impl.OutArchiveTarImpl;
-import net.sf.sevenzipjbinding.impl.OutArchiveXzImpl;
 import net.sf.sevenzipjbinding.impl.OutArchiveZipImpl;
-import net.sf.sevenzipjbinding.impl.OutArchiveZstdImpl;
-
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 
 /**
  * Enumeration of all supported archive types. <blockquote>
- *
+ * 
  * <table border="1">
  * <tr>
  * <td><b>Format</b></td>
@@ -193,7 +187,7 @@ import java.util.Map;
  * </tr>
  * </table>
  * <blockquote> <br>
- *
+ * 
  * @author Boris Brodski
  * @since 1.0
  */
@@ -208,7 +202,6 @@ public enum ArchiveFormat {
      */
     TAR("Tar", OutArchiveTarImpl.class, true),
 
-
     /**
      * Split format. TODO Test it
      */
@@ -218,8 +211,6 @@ public enum ArchiveFormat {
      * Rar format.
      */
     RAR("Rar", true), //
-
-    RAR5("Rar5", true), //
 
     /**
      * Lzma format.
@@ -240,16 +231,6 @@ public enum ArchiveFormat {
      * Gzip format
      */
     GZIP("GZip", OutArchiveGZipImpl.class, false),
-
-    /**
-     * Xz format
-     */
-    XZ("Xz", OutArchiveXzImpl.class, false),
-
-    /**
-     * Gzip format
-     */
-    ZSTD("Zstd", OutArchiveZstdImpl.class, false),
 
     /**
      * Cpio format.
@@ -299,52 +280,13 @@ public enum ArchiveFormat {
     /**
      * Deb
      */
-    DEB("Ar", true),
+    DEB("Deb", true),
 
     /**
      * Rpm
      */
     RPM("Rpm", true),
 
-    /**
-     * elf
-     */
-    ELF("Elf", true),
-
-
-    EXT("Ext", true),
-
-    FAT("Fat", true),
-
-    VDI("Vdi", true),
-
-    VHD("Vhd", true),
-
-    VMDK("Vmdk", true),
-
-    NTFS("Ntfs", true),
-
-    QCOW("Qcow", true),
-
-    SQUASHFS("Squashfs", true),
-
-    PPMD("Ppmd", true),
-
-    SWF("Swf", true),
-
-    PE("Pe", true),
-
-    DMG("Dmg", true),
-
-    CRAMFS("Cramfs", true),
-
-    UEFI("Uefi", true),
-
-    MBR("Mbr", true),
-
-    GPT("Gpt", true),
-
-    IHEX("Ihex", true),
     /**
      * Udf
      */
@@ -373,33 +315,20 @@ public enum ArchiveFormat {
 
     private boolean supportMultipleFiles;
 
-    ArchiveFormat(String methodName, boolean supportMultipleFiles) {
+    private ArchiveFormat(String methodName, boolean supportMultipleFiles) {
         this(methodName, null, supportMultipleFiles);
     }
 
-    ArchiveFormat(String methodName, Class<? extends OutArchiveImpl<?>> outArchiveImplementation,
-                  boolean supportMultipleFiles) {
+    private ArchiveFormat(String methodName, Class<? extends OutArchiveImpl<?>> outArchiveImplementation,
+            boolean supportMultipleFiles) {
         this.methodName = methodName;
         this.outArchiveImplementation = outArchiveImplementation;
         this.supportMultipleFiles = supportMultipleFiles;
     }
 
-    private static final Map<String, ArchiveFormat> formatMap = new HashMap<>();
-
-    static {
-        for (ArchiveFormat value : values()) {
-            formatMap.put(value.methodName.toLowerCase(Locale.getDefault()), value);
-        }
-
-    }
-
-    public static ArchiveFormat getFormatFromName(String name) {
-        return formatMap.get(name);
-    }
-
     /**
      * Return name of the archive method
-     *
+     * 
      * @return name of the archive method
      */
     public String getMethodName() {
@@ -408,9 +337,9 @@ public enum ArchiveFormat {
 
     /**
      * Return whether this archive type supports creation/update operations
-     *
+     * 
      * @return <code>true</code> - creation/update operations are supported,<br>
-     * <code>false</code> - only archive extraction is supported
+     *         <code>false</code> - only archive extraction is supported
      */
     public boolean isOutArchiveSupported() {
         return outArchiveImplementation != null;
@@ -418,7 +347,7 @@ public enum ArchiveFormat {
 
     /**
      * Get corresponding implementation class for archive update operations.
-     *
+     * 
      * @return the {@link IOutArchive} implementation class
      */
     public Class<? extends OutArchiveImpl<?>> getOutArchiveImplementation() {
@@ -428,7 +357,7 @@ public enum ArchiveFormat {
     /**
      * Return <code>true</code>, if the archive format is capable of compressing or storing multiple files within the
      * archive.
-     *
+     * 
      * @return <code>true</code> - support multiple files, <code>false</code> support single file or stream
      */
     public boolean supportMultipleFiles() {
@@ -445,10 +374,12 @@ public enum ArchiveFormat {
 
     /**
      * Finds the {@link ArchiveFormat} corresponding to the given out-archive interface.
-     *
-     * @param outArchiveInterface out-archive interface
+     * 
+     * @param outArchiveInterface
+     *            out-archive interface
      * @return corresponding out-archive implementation class
-     * @throws SevenZipException if no implementation class could be found.
+     * @throws SevenZipException
+     *             if no implementation class could be found.
      */
     static ArchiveFormat findOutArchiveImplementationToInterface(
             Class<? extends IOutCreateArchive<?>> outArchiveInterface) throws SevenZipException {

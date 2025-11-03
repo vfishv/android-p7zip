@@ -66,12 +66,12 @@ public class OutArchive7zImpl extends OutArchiveImpl<IOutItem7z> implements IOut
             stringBuilder.append("B");
         }
         if (stringBuilder.length() > 0) {
-            setSolidSpecInternal(stringBuilder.toString());
+            nativeSetSolidSpec(stringBuilder.toString());
         }
 
         // Set solid block configuration
         if (!solid) {
-            setSolidSpecInternal(null);
+            nativeSetSolidSpec(null);
         }
     }
 

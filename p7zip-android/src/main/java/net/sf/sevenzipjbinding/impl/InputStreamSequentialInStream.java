@@ -1,11 +1,10 @@
 package net.sf.sevenzipjbinding.impl;
 
-import net.sf.sevenzipjbinding.ISequentialInStream;
-import net.sf.sevenzipjbinding.SevenZipException;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
+
+import net.sf.sevenzipjbinding.ISequentialInStream;
+import net.sf.sevenzipjbinding.SevenZipException;
 
 /**
  * Input stream based implementation of {@link ISequentialInStream}.
@@ -29,25 +28,20 @@ public class InputStreamSequentialInStream implements ISequentialInStream {
     /**
      * {@inheritDoc}
      */
-    public int read(byte[] data,int len) throws SevenZipException {
-        if (len == 0) {
+    public int read(byte[] data) throws SevenZipException {
+        if (data.length == 0) {
             return 0;
         }
 
         try {
-            int result = inputStream.read(data,0,len);
+            int result = inputStream.read(data);
             if (result < 0) {
                 return 0;
             }
             return result;
         } catch (IOException e) {
-            throw new SevenZipException("Error reading " + len + " bytes out of InputStream", e);
+            throw new SevenZipException("Error reading " + data.length + " bytes out of InputStream", e);
         }
-    }
-
-    @Override
-    public int read(ByteBuffer src, int len) throws SevenZipException {
-        return 0;
     }
 
     /**

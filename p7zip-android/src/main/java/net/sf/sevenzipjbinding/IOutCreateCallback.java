@@ -1,7 +1,5 @@
 package net.sf.sevenzipjbinding;
 
-import androidx.annotation.NonNull;
-
 import net.sf.sevenzipjbinding.impl.OutItemFactory;
 
 /**
@@ -105,7 +103,6 @@ public interface IOutCreateCallback<T extends IOutItemBase> extends IProgress {
      *             four exceptions depending on the situation can be saved for further analysis. See
      *             {@link SevenZipException} and {@link SevenZipException#printStackTraceExtended()} for details.
      */
-    @NonNull
     public T getItemInformation(int index, OutItemFactory<T> outItemFactory) throws SevenZipException;
 
     /**

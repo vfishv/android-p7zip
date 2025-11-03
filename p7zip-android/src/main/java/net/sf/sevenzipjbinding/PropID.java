@@ -176,7 +176,7 @@ public enum PropID {
     POSIX_ATTRIB, //
     LINK, //
 
-    // TODO Add test to ensure "kpidSymLink"(c++) == "LINK" (java)
+    // TODO Add test to ensure "kpidLink"(c++) == "LINK" (java)
 
     TOTAL_SIZE(0x1100), //
     FREE_SPACE(0x1101), //

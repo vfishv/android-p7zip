@@ -1,7 +1,6 @@
 package net.sf.sevenzipjbinding;
 
 import java.io.Closeable;
-import java.nio.ByteBuffer;
 
 /**
  * Interface used to operate with sequential input stream.
@@ -21,9 +20,8 @@ public interface ISequentialInStream extends Closeable {
      * Synchronized implementation may be required.
      * 
      * 
-     * @param src
+     * @param data
      *            buffer to get read data
-     * @param len buffer length
      * 
      * @return amount of bytes written in the <code>data</code> array. 0 - represents end of stream.
      * 
@@ -35,6 +33,5 @@ public interface ISequentialInStream extends Closeable {
      *             four exceptions depending on the situation can be saved for further analysis. See
      *             {@link SevenZipException} and {@link SevenZipException#printStackTraceExtended()} for details.
      */
-
-    public int read(ByteBuffer src, int len) throws SevenZipException;
+    public int read(byte[] data) throws SevenZipException;
 }
