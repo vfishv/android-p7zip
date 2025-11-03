@@ -1,10 +1,6 @@
 #ifndef CPPTOJAVAARCHIVEEXTRACTCALLBACK_H_
 #define CPPTOJAVAARCHIVEEXTRACTCALLBACK_H_
 
-#include <7zip/Archive/IArchive.h>
-#include <7zip/IPassword.h>
-#include <Common/MyCom.h>
-#include <Common/MyGuidDef.h>
 #include "CPPToJavaProgress.h"
 #include "CPPToJavaCryptoGetTextPassword.h"
 
@@ -45,7 +41,7 @@ public:
         }
     }
 
-    STDMETHOD(QueryInterface)(REFGUID refguid, void ** p) noexcept {
+    STDMETHOD(QueryInterface)(REFGUID refguid, void ** p) {
         TRACE_OBJECT_CALL("QueryInterface");
 
         if (refguid == IID_ICryptoGetTextPassword && _cryptoGetTextPasswordImpl) {
@@ -57,12 +53,12 @@ public:
         return CPPToJavaProgress::QueryInterface(refguid, p);
     }
 
-    STDMETHOD_(ULONG, AddRef)() noexcept {
+    STDMETHOD_(ULONG, AddRef)() {
         TRACE_OBJECT_CALL("AddRef");
         return CPPToJavaProgress::AddRef();
     }
 
-    STDMETHOD_(ULONG, Release)() noexcept {
+    STDMETHOD_(ULONG, Release)() {
         TRACE_OBJECT_CALL("Release");
         return CPPToJavaProgress::Release();
     }

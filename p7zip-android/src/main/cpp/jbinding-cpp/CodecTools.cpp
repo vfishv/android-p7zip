@@ -37,11 +37,7 @@ void CodecTools::init() {
             gzipIndex = i;
         } else if (wcscmp(name, L"bzip2") == 0) {
             bzip2Index = i;
-        } else if (wcscmp(name, L"xz") == 0) {
-            xzIndex = i;
-        } else if (wcscmp(name, L"zstd") == 0) {
-			zstdIndex = i;
-		}
+        }
 	}
 }
 
@@ -51,10 +47,9 @@ void CodecTools::init() {
  * @param formatName archive type format name
  */
 static int getIndexByName(JNIEnv * env, jstring formatName) {
+	const jchar * formatNameJChars = env->GetStringChars(formatName, NULL);
 	UString formatNameString;
-	const jchar * formatNameJChars = env->GetStringChars(formatName, nullptr);
-	formatNameString = UnicodeHelper(formatNameJChars,
-									 static_cast<size_t>(env->GetStringLength(formatName)));
+	formatNameString = UnicodeHelper(formatNameJChars);
 	env->ReleaseStringChars(formatName, formatNameJChars);
 
 	TRACE("Format: " << formatNameString)

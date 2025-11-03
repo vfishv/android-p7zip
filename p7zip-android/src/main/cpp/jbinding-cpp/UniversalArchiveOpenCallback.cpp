@@ -2,61 +2,55 @@
 
 #include "JNITools.h"
 #include "UniversalArchiveOpenCallback.h"
-#include "ScopedLocalRef.h"
 
-void UniversalArchiveOpencallback::Init(JBindingSession &jbindingSession, JNIEnv *initEnv,
-                                        jobject archiveOpenCallbackImpl) {
+void UniversalArchiveOpencallback::Init(JBindingSession & jbindingSession, JNIEnv * initEnv,
+		jobject archiveOpenCallbackImpl)
+{
     TRACE_OBJECT_CALL("Init")
 
-    CMyComPtr<IArchiveOpenCallback> archiveOpenCallbackComPtr = new CPPToJavaArchiveOpenCallback(
-            jbindingSession, initEnv, archiveOpenCallbackImpl);
+    CMyComPtr<IArchiveOpenCallback> archiveOpenCallbackComPtr = new CPPToJavaArchiveOpenCallback(jbindingSession, initEnv, archiveOpenCallbackImpl);
     _archiveOpenCallback = archiveOpenCallbackComPtr.Detach();
 
-    _archiveOpenVolumeCallback = nullptr;
-    _cryptoGetTextPassword = nullptr;
+    _archiveOpenVolumeCallback = NULL;
+    _cryptoGetTextPassword = NULL;
 
     _simulateArchiveOpenVolumeCallback = false;
 
-    ScopedLocalRef<jclass> cryptoGetTextPasswordClass(initEnv,
-                                                      initEnv->FindClass(
-                                                              CRYPTOGETTEXTPASSWORD_CLASS));
-    FATALIF(cryptoGetTextPasswordClass.get() == nullptr,
-            "Can't find class "
-                    CRYPTOGETTEXTPASSWORD_CLASS);
+    jclass cryptoGetTextPasswordClass = initEnv->FindClass(CRYPTOGETTEXTPASSWORD_CLASS);
+    FATALIF(cryptoGetTextPasswordClass == NULL,
+            "Can't find class " CRYPTOGETTEXTPASSWORD_CLASS);
 
+    jclass archiveOpenVolumeCallbackClass = initEnv->FindClass(ARCHIVEOPENVOLUMECALLBACK_CLASS);
+    FATALIF(cryptoGetTextPasswordClass == NULL,
+            "Can't find class " ARCHIVEOPENVOLUMECALLBACK_CLASS);
 
-    if (initEnv->IsInstanceOf(archiveOpenCallbackImpl, cryptoGetTextPasswordClass.get())) {
-        TRACE("implements ICryptoGetTextPassword")
+    if (initEnv->IsInstanceOf(archiveOpenCallbackImpl, cryptoGetTextPasswordClass))
+    {
+    	TRACE("implements ICryptoGetTextPassword")
         CMyComPtr<ICryptoGetTextPassword> cryptoGetTextPasswordComPtr =
-                new CPPToJavaCryptoGetTextPassword(jbindingSession, initEnv,
-                                                   archiveOpenCallbackImpl);
+            new CPPToJavaCryptoGetTextPassword(jbindingSession, initEnv, archiveOpenCallbackImpl);
         _cryptoGetTextPassword = cryptoGetTextPasswordComPtr.Detach();
     }
 
-    ScopedLocalRef<jclass> archiveOpenVolumeCallbackClass(initEnv,
-                                                          initEnv->FindClass(
-                                                                  ARCHIVEOPENVOLUMECALLBACK_CLASS));
-    FATALIF(archiveOpenVolumeCallbackClass.get() == nullptr,
-            "Can't find class "
-                    ARCHIVEOPENVOLUMECALLBACK_CLASS);
-
-    if (initEnv->IsInstanceOf(archiveOpenCallbackImpl, archiveOpenVolumeCallbackClass.get())) {
-        TRACE("implements IArchiveOpenVolumeCallback")
+    if (initEnv->IsInstanceOf(archiveOpenCallbackImpl, archiveOpenVolumeCallbackClass))
+    {
+    	TRACE("implements IArchiveOpenVolumeCallback")
         CMyComPtr<IArchiveOpenVolumeCallback> archiveOpenVolumeCallbackComPtr =
-                new CPPToJavaArchiveOpenVolumeCallback(jbindingSession, initEnv,
-                                                       archiveOpenCallbackImpl);
+            new CPPToJavaArchiveOpenVolumeCallback(jbindingSession, initEnv, archiveOpenCallbackImpl);
         _archiveOpenVolumeCallback = archiveOpenVolumeCallbackComPtr.Detach();
     }
 }
 
-STDMETHODIMP (UniversalArchiveOpencallback::QueryInterface)(REFGUID iid, void **outObject) {
+STDMETHODIMP(UniversalArchiveOpencallback::QueryInterface)(REFGUID iid, void **outObject)
+{
     TRACE_OBJECT_CALL("QueryInterface")
 //    TRACE1("UniversalArchiveOpencallback::QueryInterface(%i)", iid)
 //    TRACE2("UniversalArchiveOpencallback::QueryInterface(%x,%x)", (int)iid.Data4[3], (int)iid.Data4[5])
 //    TRACE1("_archiveOpenVolumeCallback=0x%08X", (size_t)_archiveOpenVolumeCallback)
 
-    if (iid == IID_IArchiveOpenCallback) {
-        *outObject = (void *) (IArchiveOpenCallback *) this;
+    if (iid == IID_IArchiveOpenCallback)
+    {
+        *outObject = (void *)(IArchiveOpenCallback *)this;
         AddRef();
         return S_OK;
     }
@@ -72,17 +66,18 @@ STDMETHODIMP (UniversalArchiveOpencallback::QueryInterface)(REFGUID iid, void **
     // exception there, if not real implementation was
     // provided.
     if (_simulateArchiveOpenVolumeCallback ||
-        (memcmp(&iid, &IID_IArchiveOpenVolumeCallback, sizeof(GUID)) == 0 &&
-         _archiveOpenVolumeCallback)) {
+            (memcmp(&iid, &IID_IArchiveOpenVolumeCallback, sizeof(GUID)) == 0 && _archiveOpenVolumeCallback))
+    {
 //    	TRACE("OpenVolume")
-        *outObject = (void *) (IArchiveOpenVolumeCallback *) this;
+        *outObject = (void *)(IArchiveOpenVolumeCallback *)this;
         AddRef();
         return S_OK;
     }
 
-    if (iid == IID_ICryptoGetTextPassword && _cryptoGetTextPassword) {
+    if (iid == IID_ICryptoGetTextPassword && _cryptoGetTextPassword)
+    {
 //    	TRACE("CryptoGetTextPassword")
-        *outObject = (void *) (ICryptoGetTextPassword *) this;
+        *outObject = (void *)(ICryptoGetTextPassword *)this;
         AddRef();
         return S_OK;
     }

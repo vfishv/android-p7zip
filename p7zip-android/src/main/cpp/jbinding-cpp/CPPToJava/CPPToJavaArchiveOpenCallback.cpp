@@ -8,21 +8,20 @@ STDMETHODIMP CPPToJavaArchiveOpenCallback::SetCompleted(const UInt64 *files, con
 
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
-    jlong filesLong = 0;
-    jlong bytesLong = 0;
+    jobject filesLongObject = NULL;
+    jobject bytesLongObject = NULL;
 
     if (files) {
-        filesLong = static_cast<jlong>(*files);
+        filesLongObject = LongToObject(jniEnvInstance, *files);
     }
 
     if (bytes) {
-        bytesLong = static_cast<jlong>(*bytes);
+        bytesLongObject = LongToObject(jniEnvInstance, *bytes);
     }
 
-    jboolean completed = _iArchiveOpenCallback->setCompleted(jniEnvInstance, _javaImplementation,
-                                                             filesLong,
-                                                             bytesLong);
-    return !completed ? S_FALSE : S_OK;
+    _iArchiveOpenCallback->setCompleted(jniEnvInstance, _javaImplementation, filesLongObject,
+            bytesLongObject);
+    return jniEnvInstance.exceptionCheck() ? S_FALSE : S_OK;
 }
 
 STDMETHODIMP CPPToJavaArchiveOpenCallback::SetTotal(const UInt64 *files, const UInt64 *bytes) {
@@ -30,19 +29,18 @@ STDMETHODIMP CPPToJavaArchiveOpenCallback::SetTotal(const UInt64 *files, const U
 
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
-    jlong filesLong = 0;
-    jlong bytesLong = 0;
+    jobject filesLongObject = NULL;
+    jobject bytesLongObject = NULL;
 
     if (files) {
-        filesLong = static_cast<jlong>(*files);
+        filesLongObject = LongToObject(jniEnvInstance, *files);
     }
 
     if (bytes) {
-        bytesLong = static_cast<jlong>(*bytes);
+        bytesLongObject = LongToObject(jniEnvInstance, *bytes);
     }
 
-    jboolean total = _iArchiveOpenCallback->setTotal(jniEnvInstance, _javaImplementation, filesLong,
-                                                     bytesLong);
-    return !total ? S_FALSE : S_OK;
+    _iArchiveOpenCallback->setTotal(jniEnvInstance, _javaImplementation, filesLongObject, bytesLongObject);
+    return jniEnvInstance.exceptionCheck() ? S_FALSE : S_OK;
 }
 

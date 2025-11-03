@@ -40,7 +40,6 @@
 #include <map>
 #include <stdarg.h>
 #include "JObjectList.h"
-#include "ScopedLocalRef.h"
 
 // TODO Remove from here
 #define JBINDING_JNIEXPORT extern "C" JNIEXPORT
@@ -53,7 +52,7 @@
 #define _JT_EXPAND(a)                           a
 
 // Expand "f" and "a". Expand f(a)
-#define _JT_APPLY1(f, a)                         f(a)
+#define _JT_APPLY1(f,a)                         f(a)
 
 // Expand "a" and convert into string constant
 #define _JT_TO_STRING(a)                        #a
@@ -88,7 +87,6 @@
 #define _JT_CTYPE_String                        jstring
 #define _JT_CTYPE_Void                          void
 #define _JT_CTYPE_ByteArray                     jbyteArray
-#define _JT_CTYPE_BooleanArray                  jbooleanArray
 
 #define _JT_JSIG_Boolean                        "Z"
 #define _JT_JSIG_Int                            "I"
@@ -187,21 +185,21 @@
     _JT_PARAM_SPEC_TO_CONSTRUCTORNAME1_##param_spec
 #define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME1_JT_PARAM(type, sig, name, param_spec)                \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME2_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME2_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME2_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME3_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME3_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME3_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME4_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME4_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME4_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME5_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME5_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME5_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME6_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME6_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME6_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME7_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME7_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME7_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME8_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME8_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME8_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME9_##param_spec))
-#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME9_JT_PARAM(type, sig, name, param_spec)                 \
+#define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME9_JT_PARAM(type, sig,name, param_spec)                 \
     _JT_CONCAT3(_,name,_JT_EXPAND(_JT_PARAM_SPEC_TO_CONSTRUCTORNAME10_##param_spec))
 
 #define _JT_PARAM_SPEC_TO_CONSTRUCTORNAME1__    _constr
@@ -330,16 +328,8 @@
 #define JT_BYTE_ARRAY(name, param_spec)                                                         \
             JT_PARAM(ByteArray, "[B", name, param_spec)
 
-
-#define JT_BOOLEAN_ARRAY(name, param_spec)                                                         \
-            JT_PARAM(BooleanArray, "[Z", name, param_spec)
-
-
 #define JT_LONG_OBJECT(name, param_spec)                                                        \
             JT_PARAM(Object, "Ljava/lang/Long;", name, param_spec)
-
-#define JT_BYTE_BUFFER_OBJECT(name, param_spec)                                                        \
-            JT_PARAM(Object, "Ljava/nio/ByteBuffer;", name, param_spec)
 
 // ------------------------------
 // -- Assert and trace defines --
@@ -586,7 +576,7 @@
             _JT_RETURN_RESULT_##ret_type                                                        \
         }                                                                                       \
         bool _##name##_exists(JNIEnv * __env) {                                                 \
-            return _JT_METHOD_OBJECT(name).exists(__env, _getJClass());                         \
+        	return _JT_METHOD_OBJECT(name).exists(__env, _getJClass());                         \
         }
 
 
@@ -612,7 +602,6 @@
             expectExceptionCheck(env);                                                          \
             return __result;                                                                    \
         }
-        //global jclass clazz=_instance;
 // TODO Log constructor calls
 
 //            _JT_CALL_AND_ASSIGN_TO_RESULT_##ret_type(                               \
@@ -627,288 +616,271 @@
 
 namespace jni {
 
-    inline void expectExceptionCheck(JNIEnv *env) {
+inline void expectExceptionCheck(JNIEnv * env) {
 #ifdef JNI_TOOLS_DEBUG_CALL_AND_EXCEPTION_CLEAR_BEHAVIOR
-        TRACE("Expect exception check")
-        char * p = (char*)env;
-        for (int i = 0; i < sizeof(*env); i++) {
-            p[i]++;
-        }
-#endif
+	TRACE("Expect exception check")
+    char * p = (char*)env;
+    for (int i = 0; i < sizeof(*env); i++) {
+        p[i]++;
     }
+#endif
+}
 
-    inline void prepareExceptionCheck(JNIEnv *env) {
+inline void prepareExceptionCheck(JNIEnv * env) {
 #ifdef JNI_TOOLS_DEBUG_CALL_AND_EXCEPTION_CLEAR_BEHAVIOR
-        TRACE("Prepare exception check")
-        char * p = (char*)env;
-        for (int i = 0; i < sizeof(*env); i++) {
-            p[i]--;
-        }
-#endif
+	TRACE("Prepare exception check")
+    char * p = (char*)env;
+    for (int i = 0; i < sizeof(*env); i++) {
+        p[i]--;
     }
+#endif
+}
 
-    template<class T>
-    class JavaClass {
-        char const *_fullname;
-        jclass _jclass;
-        PlatformCriticalSection _initCriticalSection;
-    protected:
-        static T &_instance;
-
-        JavaClass(char const *fullname) :
-                _fullname(fullname), _jclass(NULL) {
-        }
+template<class T>
+class JavaClass {
+    char const * _fullname;
+    jclass _jclass;
+    PlatformCriticalSection _initCriticalSection;
+protected:
+    static T & _instance;
+    JavaClass(char const * fullname) :
+        _fullname(fullname), _jclass(NULL) {
+    }
 
 #ifdef TRACE_ON
-        template<typename T2>
-        friend std::ostream & operator<<(std::ostream &, JavaClass<T2> &);
+    template<typename T2>
+    friend std::ostream & operator<<(std::ostream &, JavaClass<T2> &);
 #endif
 #ifdef USE_MY_ASSERTS
-        void checkObjectClass(JNIEnv * env, jobject object) {
-            jclass expectedClass = _getJClass(env);
-            if (!env->IsInstanceOf(object, expectedClass)) {
-                ScopedLocalRef<jclass> objectClass(env, env->GetObjectClass(object));
+    void checkObjectClass(JNIEnv * env, jobject object) {
+    	jclass expectedClass = _getJClass(env);
+        if (!env->IsInstanceOf(object, expectedClass)) {
+        	jclass objectClass = env->GetObjectClass(object);
 
-                jmethodID getCanonicalNameMethod = env->GetMethodID(objectClass.get(), "getCanonicalName", "()Ljava/lang/String;");
+        	jmethodID getCanonicalNameMethod = env->GetMethodID(objectClass, "getCanonicalName", "()Ljava/lang/String;");
 
-                ScopedLocalRef<jstring> objectClassNameString(env, (jstring)env->CallObjectMethod(objectClass.get(), getCanonicalNameMethod));
-                const char* objectClassName = env->GetStringUTFChars(objectClassNameString.get(), NULL);
+        	jstring objectClassNameString = (jstring)env->CallObjectMethod(objectClass, getCanonicalNameMethod);
+        	const char* objectClassName = env->GetStringUTFChars(objectClassNameString, NULL);
 
-                jstring expectedClassNameString = (jstring)env->CallObjectMethod(expectedClass, getCanonicalNameMethod);
-                const char* expectedClassName = env->GetStringUTFChars(expectedClassNameString, NULL);
+        	jstring expectedClassNameString = (jstring)env->CallObjectMethod(expectedClass, getCanonicalNameMethod);
+        	const char* expectedClassName = env->GetStringUTFChars(expectedClassNameString, NULL);
 
-                fatal("Passed object (instance of %s) doesn't match expected class %s (%s)\n",
-                        objectClassName, expectedClassName, _fullname);
-            }
+        	fatal("Passed object (instance of %s) doesn't match expected class %s (%s)\n",
+        			objectClassName, expectedClassName, _fullname);
         }
+    }
 #endif // USE_MY_ASSERTS
-    private:
-        void initIfNecessary(JNIEnv *env) {
-            if (_jclass) {
-                return;
-            }
-            _initCriticalSection.Enter();
-            if (!_jclass) {
-                init(env);
-            }
-            _initCriticalSection.Leave();
-        }
+private:
+    void initIfNecessary(JNIEnv * env) {
+    	if (_jclass) {
+    		return;
+    	}
+    	_initCriticalSection.Enter();
+    	if (!_jclass) {
+    		init(env);
+    	}
+    	_initCriticalSection.Leave();
+    }
+    void init(JNIEnv * env) {
+        TRACE ("env->FindClass() for " << _fullname)
+        jclass clazz = env->FindClass(_fullname);
+        FATALIF1(!clazz, "Error finding class '%s'", _fullname)
+        _jclass = static_cast<jclass> (env->NewGlobalRef(clazz));
+        MY_ASSERT(_jclass);
+    }
+public:
+    jclass _getJClass(JNIEnv * env) {
+    	initIfNecessary(env);
+        return _jclass;
+    }
 
-        void init(JNIEnv *env) {
-            TRACE ("env->FindClass() for " << _fullname)
-            ScopedLocalRef<jclass> clazz(env, env->FindClass(_fullname));
-            FATALIF1(!clazz.get(), "Error finding class '%s'", _fullname)
-            _jclass = static_cast<jclass> (env->NewGlobalRef(clazz.get()));
-            MY_ASSERT(_jclass);
-        }
+    static void _initialize(JNIEnv * env) {
+    	_instance.initIfNecessary(env);
+    }
 
-    public:
-        jclass _getJClass(JNIEnv *env) {
-            initIfNecessary(env);
-            return _jclass;
-        }
+    // TODO Remove it
+    static jobject _newInstance(JNIEnv * env) {
+        jclass clazz = _instance._getJClass(env);
+        jmethodID defaultConstructor = _instance._defaultConstructor.getMethodID(env, clazz);
+        FATALIF1(defaultConstructor == NULL, "Class '%s' has no default constructor",
+                _instance._fullname);
+        jobject newObject = env->NewObject(clazz, defaultConstructor);
+        expectExceptionCheck(env);
+        return newObject;
+    }
 
-        static void _initialize(JNIEnv *env) {
-            _instance.initIfNecessary(env);
-        }
+    static bool _isInstance(JNIEnv * env, jobject object) {
+        return env->IsInstanceOf(object, _instance._getJClass(env));
+    }
+    static bool _isAssingableFromInstanceOf(JNIEnv * env, jclass clazz) {
+        return env->IsAssignableFrom(clazz, _instance._getJClass(env));
+    }
+};
 
-        // TODO Remove it
-        static jobject _newInstance(JNIEnv *env) {
-            jclass clazz = _instance._getJClass(env);
-            jmethodID defaultConstructor = _instance._defaultConstructor.getMethodID(env, clazz);
-            FATALIF1(defaultConstructor == NULL, "Class '%s' has no default constructor",
-                     _instance._fullname);
-            jobject newObject = env->NewObject(clazz, defaultConstructor);
-            expectExceptionCheck(env);
-            return newObject;
-        }
-
-        static bool _isInstance(JNIEnv *env, jobject object) {
-            return env->IsInstanceOf(object, _instance._getJClass(env));
-        }
-
-        static bool _isAssingableFromInstanceOf(JNIEnv *env, jclass clazz) {
-            return env->IsAssignableFrom(clazz, _instance._getJClass(env));
-        }
-    };
-
-    template<typename T>
-    T &JavaClass<T>::_instance = *(new T());
+template<typename T>
+T & JavaClass<T>::_instance = *(new T());
 
 #ifdef TRACE_ON
-    template<typename T>
-    inline std::ostream & operator<<(std::ostream & stream, JavaClass<T> & javaClass) {
-        stream << javaClass._fullname;
-    }
+template<typename T>
+inline std::ostream & operator<<(std::ostream & stream, JavaClass<T> & javaClass) {
+    stream << javaClass._fullname;
+}
 #endif // TRACE_ON
 
-    template<typename T>
-    class JInterface {
-        static JObjectMap<T *> _jinterfaceMap;
-        static PlatformCriticalSection _criticalSection;
-        char const *_name;
-        jclass _jclass;
-    protected:
-        JInterface(char const *name) :
-                _name(name), _jclass(NULL) {
-        }
-
+template<typename T>
+class JInterface {
+    static JObjectMap<T*> _jinterfaceMap;
+    static PlatformCriticalSection _criticalSection;
+    char const * _name;
+    jclass _jclass;
+protected:
+    JInterface(char const * name) :
+        _name(name), _jclass(NULL) {
+    }
 #ifdef USE_MY_ASSERTS
-        void checkObjectClass(JNIEnv * env, jobject object) {
-            jclass clazz = env->GetObjectClass(object);
-            FATALIF(!clazz, "JInterface::checkObject(): GetObjectClass() failed")
-            MY_ASSERT(env->IsSameObject(_jclass, clazz))
-        }
+    void checkObjectClass(JNIEnv * env, jobject object) {
+        jclass clazz = env->GetObjectClass(object);
+        FATALIF(!clazz, "JInterface::checkObject(): GetObjectClass() failed")
+        MY_ASSERT(env->IsSameObject(_jclass, clazz))
+    }
 #endif // USE_MY_ASSERTS
-    public:
-        jclass _getJClass() {
-            return _jclass;
-        }
-
-        char const *_getName() {
-            return _name;
-        }
-
-        static T *_getInstanceFromObject(JNIEnv *env, jobject jobject) {
-            FATALIF(!jobject, "_getInstanceFromObject(): 'jobject' can't be null")
-            FATALIF(!env, "_getInstanceFromObject(): 'env' can't be null")
-
-            ScopedLocalRef<jclass> jobjectClass(env, env->GetObjectClass(jobject));
-
-            FATALIF(!jobjectClass.get(), "Error determining object class");
-            return _getInstance(env, jobjectClass.get());
-        }
-
-        static T *_getInstance(JNIEnv *env, jclass objectClass) {
-            _criticalSection.Enter();
-            T **instance = _jinterfaceMap.get(env, objectClass);
-            if (instance) {
-                _criticalSection.Leave();
-                return *instance;
-            }
-
-            objectClass = (jclass) env->NewGlobalRef(objectClass);
-            T *newInstance = new T();
-            newInstance->_jclass = objectClass;
-            _jinterfaceMap.add(objectClass, newInstance);
-
+public:
+    jclass _getJClass() {
+        return _jclass;
+    }
+    char const * _getName() {
+        return _name;
+    }
+    static T * _getInstanceFromObject(JNIEnv * env, jobject jobject) {
+        FATALIF(!jobject, "_getInstanceFromObject(): 'jobject' can't be null")
+        FATALIF(!env, "_getInstanceFromObject(): 'env' can't be null")
+        jclass jobjectClass = env->GetObjectClass(jobject);
+        FATALIF(!jobjectClass, "Error determining object class");
+        return _getInstance(env, jobjectClass);
+    }
+    static T * _getInstance(JNIEnv * env, jclass objectClass) {
+        _criticalSection.Enter();
+        T ** instance = _jinterfaceMap.get(env, objectClass);
+        if (instance) {
             _criticalSection.Leave();
-
-            return newInstance;
+            return *instance;
         }
-    };
 
-    template<typename T>
-    JObjectMap<T *> JInterface<T>::_jinterfaceMap;
+        objectClass = (jclass) env->NewGlobalRef(objectClass);
+        T * newInstance = new T();
+        newInstance->_jclass = objectClass;
+        _jinterfaceMap.add(objectClass, newInstance);
 
-    template<typename T>
-    PlatformCriticalSection JInterface<T>::_criticalSection;
+        _criticalSection.Leave();
+
+        return newInstance;
+    }
+};
+
+template<typename T>
+JObjectMap<T*> JInterface<T>::_jinterfaceMap;
+
+template<typename T>
+PlatformCriticalSection JInterface<T>::_criticalSection;
+
 
 
 #ifdef TRACE_ON
-    template<typename T>
-    inline std::ostream & operator<<(std::ostream & stream, JInterface<T> & interface) {
-        stream << interface._getName();
-    }
+template<typename T>
+inline std::ostream & operator<<(std::ostream & stream, JInterface<T> & interface) {
+    stream << interface._getName();
+}
 #endif // TRACE_ON
 
-    class JMethod {
+class JMethod {
 #ifdef TRACE_ON
-        friend std::ostream & operator<<(std::ostream &, JMethod &);
+    friend std::ostream & operator<<(std::ostream &, JMethod &);
 #endif
-        char const *_name;
-        char const *_signature;
-        bool _isStatic;
-        jmethodID _jmethodID;
-        bool isInitialized;
-        PlatformCriticalSection _initCriticalSection;
-    protected:
-        JMethod(char const *name, char const *signature, bool isStatic = false) :
-                _name(name), _signature(signature), _isStatic(isStatic), _jmethodID(NULL) {
-            isInitialized = false;
-        }
-
-    public:
-        jmethodID getMethodID(JNIEnv *env, jclass jclazz) {
-            initMethodID(env, jclazz);
-            if (!_jmethodID) {
-                char const *javaClassName = "(error getting ObjectClass)";
-                env->ExceptionClear();
-                ScopedLocalRef<jclass> classClass(env, env->GetObjectClass(jclazz));
-                if (classClass.get()) {
-                    javaClassName = "(error getting Class.getName() method)";
-                    jmethodID method_getName = env->GetMethodID(classClass.get(), "getName",
-                                                                "()Ljava/lang/String;");
-                    if (method_getName) {
-                        jstring name = (jstring) env->CallObjectMethod(jclazz, method_getName);
-                        if (env->ExceptionCheck()) {
-                            javaClassName = "(error calling Class.getName())";
-                        } else {
-                            javaClassName = env->GetStringUTFChars(name, NULL);
-                        }
+    char const * _name;
+    char const * _signature;
+    bool _isStatic;
+    jmethodID _jmethodID;
+    bool  isInitialized;
+    PlatformCriticalSection _initCriticalSection;
+protected:
+    JMethod(char const * name, char const * signature, bool isStatic = false) :
+        _name(name), _signature(signature), _isStatic(isStatic), _jmethodID(NULL) {
+    	isInitialized = false;
+    }
+public:
+    jmethodID getMethodID(JNIEnv * env, jclass jclazz) {
+    	initMethodID(env, jclazz);
+    	if (!_jmethodID) {
+    	    char const * javaClassName = "(error getting ObjectClass)";
+            env->ExceptionClear();
+            jclass classClass = env->GetObjectClass(jclazz);
+            if (classClass) {
+                javaClassName = "(error getting Class.getName() method)";
+                jmethodID method_getName = env->GetMethodID(classClass, "getName", "()Ljava/lang/String;");
+                if (method_getName) {
+                    jstring name = (jstring)env->CallObjectMethod(jclazz, method_getName);
+                    if (env->ExceptionCheck()) {
+                        javaClassName = "(error calling Class.getName())";
+                    } else {
+                        javaClassName = env->GetStringUTFChars(name, NULL);
                     }
                 }
-                FATALIF4(!_jmethodID, "Method not found: %s() signature '%s'%s, java-class: %s",
-                         _name, _signature,
-                         _isStatic ? " (static)" : "", javaClassName);
             }
-            return _jmethodID;
-        }
-
-        bool exists(JNIEnv *env, jclass jclazz) {
-            initMethodID(env, jclazz);
-            return _jmethodID != NULL;
-        }
-
-    private:
-        void initMethodIDIfNecessary(JNIEnv *env, jclass jclazz);
-
-        void initMethodID(JNIEnv *env, jclass jclazz);
-    };
+    		FATALIF4(!_jmethodID, "Method not found: %s() signature '%s'%s, java-class: %s", _name, _signature,
+                    _isStatic ? " (static)" : "", javaClassName);
+    	}
+		return _jmethodID;
+    }
+    bool exists(JNIEnv * env, jclass jclazz) {
+    	initMethodID(env, jclazz);
+    	return _jmethodID != NULL;
+    }
+private:
+    void initMethodIDIfNecessary(JNIEnv * env, jclass jclazz);
+    void initMethodID(JNIEnv * env, jclass jclazz);
+};
 
 #ifdef TRACE_ON
-    inline std::ostream & operator<<(std::ostream & stream, JMethod & method) {
-        stream << method._name << method._signature;
-        return stream;
-    }
+inline std::ostream & operator<<(std::ostream & stream, JMethod & method) {
+    stream << method._name << method._signature;
+    return stream;
+}
 #endif
 
-    class JField {
+class JField {
 #ifdef TRACE_ON
-        friend std::ostream & operator<<(std::ostream &, JField &);
+    friend std::ostream & operator<<(std::ostream &, JField &);
 #endif
-        char const *_name;
-        char const *_signature;
-        bool _isStatic;
-        jfieldID _jfieldID;
+    char const * _name;
+    char const * _signature;
+    bool _isStatic;
+    jfieldID _jfieldID;
 
-    protected:
-        JField(char const *name, char const *signature, bool isStatic = false) :
-                _name(name), _signature(signature), _isStatic(isStatic), _jfieldID(NULL) {
-        }
-
-    public:
-        jfieldID getFieldID(JNIEnv *env, jclass jclazz) {
-            if (!_jfieldID) {
-                TRACE("Getting field id for " << *this);
-                if (_isStatic) {
-                    _jfieldID = env->GetStaticFieldID(jclazz, _name, _signature);
-                } else {
-                    _jfieldID = env->GetFieldID(jclazz, _name, _signature);
-                }
-                FATALIF3(!_jfieldID, "Field not found: %s signature %s%s", _name, _signature,
-                         _isStatic
-                         ? " (static)" : "");
+protected:
+    JField(char const * name, char const * signature, bool isStatic = false) :
+        _name(name), _signature(signature), _isStatic(isStatic), _jfieldID(NULL) {
+    }
+public:
+    jfieldID getFieldID(JNIEnv * env, jclass jclazz) {
+        if (!_jfieldID) {
+            TRACE("Getting field id for " << *this);
+            if (_isStatic) {
+                _jfieldID = env->GetStaticFieldID(jclazz, _name, _signature);
+            } else {
+                _jfieldID = env->GetFieldID(jclazz, _name, _signature);
             }
-            return _jfieldID;
+            FATALIF3(!_jfieldID, "Field not found: %s signature %s%s", _name, _signature, _isStatic
+                    ? " (static)" : "");
         }
-    };
+        return _jfieldID;
+    }
+};
 
 #ifdef TRACE_ON
-    inline std::ostream & operator<<(std::ostream & stream, JField & field) {
-        stream << field._name << " (" << field._signature << ")";
-        return stream;
-    }
+inline std::ostream & operator<<(std::ostream & stream, JField & field) {
+    stream << field._name << " (" << field._signature << ")";
+    return stream;
+}
 #endif
 
 }

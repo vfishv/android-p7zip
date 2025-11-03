@@ -13,16 +13,15 @@
 #include "UserTrace.h"
 
 bool isUserTraceEnabled(JNIEnvInstance & jniEnvInstance, jobject thiz) {
-//    jboolean result = jni::OutArchiveImpl::trace_Get(jniEnvInstance, thiz);
-//    if (jniEnvInstance.exceptionCheck()) {
-//        return false;
-//    }
-//    return result;
-    return false;
+    jboolean result = jni::OutArchiveImpl::trace_Get(jniEnvInstance, thiz);
+    if (jniEnvInstance.exceptionCheck()) {
+        return false;
+    }
+    return result;
 }
 
 void userTrace(JNIEnvInstance & jniEnvInstance, jobject thiz, UString msg) {
-    jstring jmsg = jniEnvInstance->NewString(UnicodeHelper(msg.GetBuf(0)), msg.Len());
+    jstring jmsg = jniEnvInstance->NewString(UnicodeHelper(msg.GetBuffer(0)), msg.Length());
     jni::OutArchiveImpl::traceMessage(jniEnvInstance, thiz, jmsg);
     jniEnvInstance.exceptionCheck(); // Ignore result
     jniEnvInstance->DeleteLocalRef(jmsg);

@@ -4,7 +4,6 @@
 #include "CPPToJavaArchiveOpenVolumeCallback.h"
 #include "CPPToJavaInStream.h"
 #include "UnicodeHelper.h"
-#include "ScopedLocalRef.h"
 
 STDMETHODIMP CPPToJavaArchiveOpenVolumeCallback::GetProperty(PROPID propID, PROPVARIANT *value) {
     TRACE_OBJECT_CALL("GetProperty");
@@ -17,22 +16,18 @@ STDMETHODIMP CPPToJavaArchiveOpenVolumeCallback::GetProperty(PROPID propID, PROP
         value->vt = VT_NULL;
     }
 
-    ScopedLocalRef<jobject> propIDObject(jniEnvInstance,
-                                         jni::PropID::getPropIDByIndex(jniEnvInstance,
-                                                                       (jint) propID));
+    jobject propIDObject = jni::PropID::getPropIDByIndex(jniEnvInstance, (jint) propID);
     if (jniEnvInstance.exceptionCheck()) {
         return S_FALSE;
     }
 
-    ScopedLocalRef<jobject> result(jniEnvInstance,
-                                   _iArchiveOpenVolumeCallback->getProperty(jniEnvInstance,
-                                                                            _javaImplementation,
-                                                                            propIDObject.get()));
+    jobject result = _iArchiveOpenVolumeCallback->getProperty(jniEnvInstance, _javaImplementation,
+            propIDObject);
     if (jniEnvInstance.exceptionCheck()) {
         return S_FALSE;
     }
 
-    ObjectToPropVariant(jniEnvInstance, result.get(), value);
+    ObjectToPropVariant(jniEnvInstance, result, value);
 
     return S_OK;
 }
@@ -44,25 +39,23 @@ STDMETHODIMP CPPToJavaArchiveOpenVolumeCallback::GetStream(const wchar_t *name,
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
     if (inStream) {
-        *inStream = nullptr;
+        *inStream = NULL;
     }
 
-    ScopedLocalRef<jstring> nameString(jniEnvInstance,
-                                       jniEnvInstance->NewString(UnicodeHelper(name),
-                                                                 (jsize) wcslen(name)));
+    jstring nameString = jniEnvInstance->NewString(UnicodeHelper(name), (jsize) wcslen(name));
 
-    ScopedLocalRef<jobject> inStreamImpl(jniEnvInstance,
-                                         _iArchiveOpenVolumeCallback->getStream(jniEnvInstance,
-                                                                                _javaImplementation,
-                                                                                nameString.get()));
+    jobject inStreamImpl = _iArchiveOpenVolumeCallback->getStream(jniEnvInstance,
+            _javaImplementation, nameString);
     if (jniEnvInstance.exceptionCheck()) {
+        jniEnvInstance->DeleteLocalRef(nameString);
         return S_FALSE;
     }
+    jniEnvInstance->DeleteLocalRef(nameString);
 
     if (inStream) {
-        if (inStreamImpl.get()) {
-            CPPToJavaInStream *newInStream = new CPPToJavaInStream(_jbindingSession, jniEnvInstance,
-                                                                   inStreamImpl.get());
+        if (inStreamImpl) {
+            CPPToJavaInStream * newInStream = new CPPToJavaInStream(_jbindingSession, jniEnvInstance,
+                    inStreamImpl);
 
             CMyComPtr<IInStream> inStreamComPtr = newInStream;
             *inStream = inStreamComPtr.Detach();

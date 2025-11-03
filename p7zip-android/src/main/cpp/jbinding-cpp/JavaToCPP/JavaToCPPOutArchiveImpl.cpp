@@ -2,6 +2,7 @@
 
 #include "JNITools.h"
 
+#include "net_sf_sevenzipjbinding_impl_OutArchiveImpl.h"
 #include "CodecTools.h"
 
 #include "CPPToJava/CPPToJavaOutStream.h"
@@ -10,23 +11,21 @@
 #include "UnicodeHelper.h"
 #include "UserTrace.h"
 
-#include "ScopedLocalRef.h"
-
 // void updateItemsNative(int archiveFormatIndex, IOutStream outStream, int numberOfItems,
 //                        IArchiveUpdateCallback archiveUpdateCallback)
 
-static JBindingSession &GetJBindingSession(JNIEnv *env, jobject thiz) {
+static JBindingSession & GetJBindingSession(JNIEnv * env, jobject thiz) {
     jlong pointer = jni::OutArchiveImpl::jbindingSession_Get(env, thiz);
     FATALIF(!pointer, "GetJBindingSession() : pointer == NULL");
 
-    return *(reinterpret_cast<JBindingSession *>(pointer));
+    return *((JBindingSession *) (void *) (size_t) pointer);
 }
 
-static IOutArchive *GetArchive(JNIEnv *env, jobject thiz) {
+static IOutArchive * GetArchive(JNIEnv * env, jobject thiz) {
     jlong pointer = jni::OutArchiveImpl::sevenZipArchiveInstance_Get(env, thiz);
     FATALIF(!pointer, "GetArchive() : pointer == NULL");
 
-    return reinterpret_cast<IOutArchive *>(pointer);
+    return (IOutArchive *) (void *) (size_t) pointer;
 }
 
 /*
@@ -35,144 +34,192 @@ static IOutArchive *GetArchive(JNIEnv *env, jobject thiz) {
  * Signature: (ILnet/sf/sevenzipjbinding/ISequentialOutStream;ILnet/sf/sevenzipjbinding/IArchiveUpdateCallback;Z)V
  */
 JBINDING_JNIEXPORT void JNICALL Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeUpdateItems(
-        JNIEnv *env,
-        jobject thiz,
-        jobject outStream,
-        jint numberOfItems,
-        jobject archiveUpdateCallback) {
+                                                                                                   JNIEnv * env,
+                                                                                                   jobject thiz,
+                                                                                                   jobject outStream,
+                                                                                                   jint numberOfItems,
+                                                                                                   jobject archiveUpdateCallback) {
     TRACE("OutArchiveImpl.updateItemsNative()");
 
-    JBindingSession &jbindingSession = GetJBindingSession(env, thiz);
+    JBindingSession & jbindingSession = GetJBindingSession(env, thiz);
     JNINativeCallContext jniNativeCallContext(jbindingSession, env);
     JNIEnvInstance jniEnvInstance(jbindingSession, jniNativeCallContext, env);
 
-    CMyComPtr<IOutArchive> outArchive(GetArchive(env, thiz));
+	CMyComPtr<IOutArchive> outArchive(GetArchive(env, thiz));
 
-    ScopedLocalRef<jobject> archiveFormat(jniEnvInstance,
-                                          jni::OutArchiveImpl::archiveFormat_Get(env, thiz));
-    int archiveFormatIndex = codecTools.getArchiveFormatIndex(jniEnvInstance, archiveFormat.get());
-    jboolean isInArchiveAttached = static_cast<jboolean>(
-            jni::OutArchiveImpl::inArchive_Get(env, thiz) != nullptr);
+    jobject archiveFormat = jni::OutArchiveImpl::archiveFormat_Get(env, thiz);
+    int archiveFormatIndex = codecTools.getArchiveFormatIndex(jniEnvInstance, archiveFormat);
+    jboolean isInArchiveAttached = jni::OutArchiveImpl::inArchive_Get(env, thiz) != NULL;
 
-    if (isUserTraceEnabled(jniEnvInstance, thiz)) {
-        if (isInArchiveAttached) {
-            userTrace(jniEnvInstance, thiz,
-                      UString(L"Updating ") << (UInt32) numberOfItems << L" items");
-        } else {
-            userTrace(jniEnvInstance, thiz,
-                      UString(L"Compressing ") << (UInt32) numberOfItems << L" items");
-        }
-    }
+	if (isUserTraceEnabled(jniEnvInstance, thiz)) {
+	    if (isInArchiveAttached) {
+	        userTrace(jniEnvInstance, thiz, UString(L"Updating ") << (UInt32)numberOfItems << L" items");
+	    } else {
+	        userTrace(jniEnvInstance, thiz, UString(L"Compressing ") << (UInt32)numberOfItems << L" items");
+	    }
+	}
 
-    CMyComPtr<IOutStream> cppToJavaOutStream = new CPPToJavaOutStream(jbindingSession, env,
-                                                                      outStream);
+	CMyComPtr<IOutStream> cppToJavaOutStream = new CPPToJavaOutStream(jbindingSession, env,
+			outStream);
 
-    CPPToJavaArchiveUpdateCallback *cppToJavaArchiveUpdateCallback = new CPPToJavaArchiveUpdateCallback(
-            jbindingSession, env,
-            archiveUpdateCallback,
-            isInArchiveAttached,
-            archiveFormatIndex,
-            thiz);
+	CPPToJavaArchiveUpdateCallback * cppToJavaArchiveUpdateCallback = new CPPToJavaArchiveUpdateCallback(
+	        jbindingSession, env,
+	        archiveUpdateCallback,
+	        isInArchiveAttached,
+	        archiveFormatIndex,
+	        thiz);
 
-    CMyComPtr<IArchiveUpdateCallback> cppToJavaArchiveUpdateCallbackPtr = cppToJavaArchiveUpdateCallback;
+	CMyComPtr<IArchiveUpdateCallback> cppToJavaArchiveUpdateCallbackPtr = cppToJavaArchiveUpdateCallback;
 
-    HRESULT hresult = outArchive->UpdateItems(cppToJavaOutStream,
-                                              static_cast<UInt32>(numberOfItems),
-                                              cppToJavaArchiveUpdateCallback);
-    if (hresult) {
-        jniEnvInstance.reportError(hresult, "Error creating '%S' archive with %i items",
-                                   (const wchar_t *) codecTools.codecs.Formats[archiveFormatIndex].Name,
-                                   (int) numberOfItems);
-    }
+	HRESULT hresult  = outArchive->UpdateItems(cppToJavaOutStream, numberOfItems,
+			cppToJavaArchiveUpdateCallback);
+	if (hresult) {
+		jniEnvInstance.reportError(hresult, "Error creating '%S' archive with %i items",
+				(const wchar_t*) codecTools.codecs.Formats[archiveFormatIndex].Name,
+				(int) numberOfItems);
+	}
 
-    cppToJavaArchiveUpdateCallback->freeOutItem(jniEnvInstance);
+	cppToJavaArchiveUpdateCallback->freeOutItem(jniEnvInstance);
 }
 
-
-JBINDING_JNIEXPORT void JNICALL
-Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeSetProperties
-        (JNIEnv *env, jobject thiz, jobjectArray jnames, jobjectArray jvalues) {
+/*
+ * Class:     net_sf_sevenzipjbinding_impl_OutArchiveImpl
+ * Method:    setLevelNative
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeSetLevel
+  (JNIEnv * env, jobject thiz, jint level) {
     TRACE("OutArchiveImpl::setLevelNative(). ThreadID=" << PlatformGetCurrentThreadId());
 
-    JBindingSession &jbindingSession = GetJBindingSession(env, thiz);
+    JBindingSession & jbindingSession = GetJBindingSession(env, thiz);
     JNINativeCallContext jniNativeCallContext(jbindingSession, env);
     JNIEnvInstance jniEnvInstance(jbindingSession, jniNativeCallContext, env);
 
     CMyComPtr<IOutArchive> outArchive(GetArchive(env, thiz));
+    // TODO Delete this and all other such ifs, also in J2CppInArchive.cpp, since this is already tested in GetArchive()
+    if (outArchive == NULL) {
+        TRACE("Archive==NULL. Do nothing...");
+        return;
+    }
 
     // TODO Move query interface to the central location in J2C+SevenZip.cpp
     CMyComPtr<ISetProperties> setProperties;
-    HRESULT result = outArchive->QueryInterface(IID_ISetProperties, (void **) &setProperties);
+    HRESULT result = outArchive->QueryInterface(IID_ISetProperties, (void**)&setProperties);
     if (result != S_OK) {
         TRACE("Error getting IID_ISetProperties interface. Result: 0x" << std::hex << result)
         jniNativeCallContext.reportError(result, "Error getting IID_ISetProperties interface.");
         return;
     }
 
-
-    //keys values
+    const int size = 1;
+    NWindows::NCOM::CPropVariant *propValues = new NWindows::NCOM::CPropVariant[size];
+    propValues[0] = (unsigned int)level;
 
     CRecordVector<const wchar_t *> names;
-
-    CRecordVector<const UString *> needDels;
-
-    jsize values_len = jniEnvInstance->GetArrayLength(jvalues);
-
-    jclass stringClass = VarTypeToJavaType(jniEnvInstance, VT_BSTR);
-    jclass integerClass = VarTypeToJavaType(jniEnvInstance, VT_UINT);
-
-    NWindows::NCOM::CPropVariant *propValues = new NWindows::NCOM::CPropVariant[values_len];
-
-    for (int i = 0; i < values_len; ++i) {
-
-        ScopedLocalRef<jstring> jname(jniEnvInstance,
-                                      static_cast<jstring>(jniEnvInstance->GetObjectArrayElement(
-                                              jnames, i)));
-
-        const jchar *nameChars = jniEnvInstance->GetStringChars(jname.get(), nullptr);
-        const UString *item = new UString(UnicodeHelper(nameChars,
-                                                        static_cast<size_t>(jniEnvInstance->GetStringLength(
-                                                                jname.get()))));
-        needDels.Add(item);
-
-        names.Add(*item);
-
-        jniEnvInstance->ReleaseStringChars(jname.get(), nameChars);
-
-        //value
-
-        ScopedLocalRef<jobject> jvalue(jniEnvInstance,
-                                       jniEnvInstance->GetObjectArrayElement(jvalues, i));
-
-        if (jniEnvInstance->IsInstanceOf(jvalue.get(), integerClass)) {
-            jint value = jni::Integer::intValue(jniEnvInstance, jvalue.get());
-            propValues[i] = (UINT32) value;
-        } else if (jniEnvInstance->IsInstanceOf(jvalue.get(), stringClass)) {
-            if (jvalue.get()) {
-                const jchar *jchars = env->GetStringChars(static_cast<jstring>(jvalue.get()),
-                                                          nullptr);
-
-                propValues[i] = UString(UnicodeHelper(jchars, static_cast<size_t>(
-                        env->GetStringLength(static_cast<jstring>(jvalue.get())))));
-
-                env->ReleaseStringChars(static_cast<jstring>(jvalue.get()), jchars);
-            } else {
-                propValues[i] = false;
-            }
-        }
-    }
+    names.Add(L"X");
 
     result = setProperties->SetProperties(&names.Front(), propValues, names.Size());
+    if (result) {
+        TRACE("Error setting 'Level' property. Result: 0x" << std::hex << result)
+        jniNativeCallContext.reportError(result, "Error setting 'Level' property.");
+        return;
+    }
+}
 
-    for (int i = 0; i < needDels.Size(); ++i) {
-        delete needDels[i];
+/*
+ * Class:     net_sf_sevenzipjbinding_impl_OutArchiveImpl
+ * Method:    nativeSetSolidSpec
+ * Signature: (Ljava/land/String;)V
+ */
+JNIEXPORT void JNICALL Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeSetSolidSpec(JNIEnv * env, jobject thiz, jstring solidSpec) {
+    TRACE("OutArchiveImpl::nativeSetSolidSpec(). ThreadID=" << PlatformGetCurrentThreadId());
+
+    JBindingSession & jbindingSession = GetJBindingSession(env, thiz);
+    JNINativeCallContext jniNativeCallContext(jbindingSession, env);
+    JNIEnvInstance jniEnvInstance(jbindingSession, jniNativeCallContext, env);
+
+    CMyComPtr<IOutArchive> outArchive(GetArchive(env, thiz));
+    // TODO Delete this and all other such ifs, also in J2CppInArchive.cpp, since this is already tested in GetArchive()
+    if (outArchive == NULL) {
+        TRACE("Archive==NULL. Do nothing...");
+        return;
     }
 
-    delete[] propValues;
+    // TODO Move query interface to the central location in J2C+SevenZip.cpp
+    CMyComPtr<ISetProperties> setProperties;
+    HRESULT result = outArchive->QueryInterface(IID_ISetProperties, (void**)&setProperties);
+    if (result != S_OK) {
+        TRACE("Error getting IID_ISetProperties interface. Result: 0x" << std::hex << result)
+        jniNativeCallContext.reportError(result, "Error getting IID_ISetProperties interface.");
+        return;
+    }
 
+    const int size = 1;
+    NWindows::NCOM::CPropVariant *propValues = new NWindows::NCOM::CPropVariant[size];
+    if (solidSpec == NULL) {
+		// printf("[SolidSpec:false]");fflush(stdout);
+        propValues[0] = false;
+    } else {
+        const jchar * jchars = env->GetStringChars(solidSpec, NULL);
+		// printf("[SolidSpec:%S]", UString(UnicodeHelper(jchars)).GetBuffer(100000));fflush(stdout);
+        propValues[0] = UString(UnicodeHelper(jchars));
+        env->ReleaseStringChars(solidSpec, jchars);
+    }
+    CRecordVector<const wchar_t *> names;
+    names.Add(L"S");
+
+    result = setProperties->SetProperties(&names.Front(), propValues, names.Size());
     if (result) {
-        TRACE("Error setting  property. Result: 0x" << std::hex << result)
-        jniNativeCallContext.reportError(result, "Error setting 'Level' property.");
+        TRACE("Error setting 'Solid' property. Result: 0x" << std::hex << result)
+        jniNativeCallContext.reportError(result, "Error setting 'Solid' property.");
+        return;
+    }
+}
+
+/*
+ * Class:     net_sf_sevenzipjbinding_impl_OutArchiveImpl
+ * Method:    nativeSetMultithreading
+ * Signature: (Ljava/land/String;)V
+ */
+JNIEXPORT void JNICALL Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeSetMultithreading(JNIEnv * env, jobject thiz, jint threadCount) {
+    TRACE("OutArchiveImpl::nativeSetMultithreading(). ThreadID=" << PlatformGetCurrentThreadId());
+
+    JBindingSession & jbindingSession = GetJBindingSession(env, thiz);
+    JNINativeCallContext jniNativeCallContext(jbindingSession, env);
+    JNIEnvInstance jniEnvInstance(jbindingSession, jniNativeCallContext, env);
+
+    CMyComPtr<IOutArchive> outArchive(GetArchive(env, thiz));
+    // TODO Delete this and all other such ifs, also in J2CppInArchive.cpp, since this is already tested in GetArchive()
+    if (outArchive == NULL) {
+        TRACE("Archive==NULL. Do nothing...");
+        return;
+    }
+
+    // TODO Move query interface to the central location in J2C+SevenZip.cpp
+    CMyComPtr<ISetProperties> setProperties;
+    HRESULT result = outArchive->QueryInterface(IID_ISetProperties, (void**)&setProperties);
+    if (result != S_OK) {
+        TRACE("Error getting IID_ISetProperties interface. Result: 0x" << std::hex << result)
+        jniNativeCallContext.reportError(result, "Error getting IID_ISetProperties interface.");
+        return;
+    }
+
+    const int size = 1;
+    NWindows::NCOM::CPropVariant *propValues = new NWindows::NCOM::CPropVariant[size];
+	// printf("[MT:%i]", (int)threadCount);fflush(stdout);
+    if (threadCount) {
+        propValues[0] = (UInt32)threadCount;
+    } else {
+    	// Use count of available processors
+        propValues[0] = true;
+    }
+    CRecordVector<const wchar_t *> names;
+    names.Add(L"MT");
+
+    result = setProperties->SetProperties(&names.Front(), propValues, names.Size());
+    if (result) {
+        TRACE("Error setting 'Multithreading' property. Result: 0x" << std::hex << result)
+        jniNativeCallContext.reportError(result, "Error setting 'Multithreading' property.");
         return;
     }
 }
@@ -182,12 +229,12 @@ Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeSetProperties
  * Method:    nativeClose
  * Signature: ()V
  */
-JBINDING_JNIEXPORT void JNICALL Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeClose
-        (JNIEnv *env, jobject thiz) {
+JNIEXPORT void JNICALL Java_net_sf_sevenzipjbinding_impl_OutArchiveImpl_nativeClose
+  (JNIEnv * env, jobject thiz) {
 
     TRACE("InArchiveImpl::nativeClose(). ThreadID=" << PlatformGetCurrentThreadId());
 
-    JBindingSession &jbindingSession = GetJBindingSession(env, thiz);
+    JBindingSession & jbindingSession = GetJBindingSession(env, thiz);
     {
         JNINativeCallContext jniNativeCallContext(jbindingSession, env);
         JNIEnvInstance jniEnvInstance(jbindingSession, jniNativeCallContext, env);

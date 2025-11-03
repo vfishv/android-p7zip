@@ -38,7 +38,7 @@ STDMETHODIMP CPPToJavaOutStream::SetSize(UInt64 newSize) {
 
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
-	_iOutStream->setSize(jniEnvInstance, _javaImplementation, static_cast<jlong>(newSize));
+	_iOutStream->setSize(jniEnvInstance, _javaImplementation, (jlong)newSize);
 
 	return jniEnvInstance.exceptionCheck() ? S_FALSE : S_OK;
 }

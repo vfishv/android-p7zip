@@ -201,10 +201,4 @@ inline std::ostream & operator<<(JOut jout, char const * str) {
 //    #define TRACE_OBJECT_ENSURE_DESTRUCTION_WITH_STACK_CMYCOMPTR(object) {}
 #endif
 
-#include <android/log.h>
-
-#define  LOG_TAG    "p7zip"
-#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
 #endif /* DEBUG_H_ */

@@ -1,4 +1,3 @@
-#include <ScopedLocalRef.h>
 #include "SevenZipJBinding.h"
 
 #include "JNITools.h"
@@ -18,27 +17,21 @@ STDMETHODIMP CPPToJavaSequentialOutStream::Write(const void *data, UInt32 size,
 
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
-    ScopedLocalRef<jobject> buffer(jniEnvInstance, jniEnvInstance->NewDirectByteBuffer(
-            const_cast<void *>(data), size));
+    jbyteArray dataArray = jniEnvInstance->NewByteArray(size);
+    jniEnvInstance->SetByteArrayRegion(dataArray, 0, (jsize) size, (const jbyte*) data);
 
-    if (!buffer.get()) {
-        jniEnvInstance.reportError("Out of local resources or out of memory");
-    }
-
-//
-//     public int write(ByteBuffer data,int len);
-    jint result = _iSequentialOutStream->write(jniEnvInstance, _javaImplementation, buffer.get(),
-                                               size);
+    // public int write(byte[] data);
+    jint result = _iSequentialOutStream->write(jniEnvInstance, _javaImplementation, dataArray);
     if (jniEnvInstance.exceptionCheck()) {
+        jniEnvInstance->DeleteLocalRef(dataArray);
         return S_FALSE;
     }
-    if (processedSize)
-        *processedSize = (UInt32) result;
+    jniEnvInstance->DeleteLocalRef(dataArray);
+    *processedSize = (UInt32) result;
 
     if (result <= 0) {
         jniEnvInstance.reportError("Implementation of 'int ISequentialOutStream.write(byte[])' "
-                                   "should write at least one byte. Returned amount of written bytes: %i",
-                                   result);
+            "should write at least one byte. Returned amount of written bytes: %i", result);
         return S_FALSE;
     }
 

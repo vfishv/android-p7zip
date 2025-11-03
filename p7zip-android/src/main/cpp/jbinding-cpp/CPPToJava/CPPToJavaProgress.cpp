@@ -8,18 +8,17 @@ STDMETHODIMP CPPToJavaProgress::SetCompleted(const UInt64 * completeValue) {
 
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
-    _iProgress->setCompleted(jniEnvInstance, _javaImplementation,
-                             static_cast<jlong>(*completeValue));
+    _iProgress->setCompleted(jniEnvInstance, _javaImplementation, (jlong) (*completeValue));
 
     return jniEnvInstance.exceptionCheck() ? S_FALSE : S_OK;
 }
 
-STDMETHODIMP CPPToJavaProgress::SetTotal(UInt64 total) {
+STDMETHODIMP CPPToJavaProgress::SetTotal(UINT64 total) {
     TRACE_OBJECT_CALL("SetTotal");
 
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
-    _iProgress->setTotal(jniEnvInstance, _javaImplementation, static_cast<jlong>(total));
+    _iProgress->setTotal(jniEnvInstance, _javaImplementation, (jlong) total);
 
     return jniEnvInstance.exceptionCheck() ? S_FALSE : S_OK;
 }

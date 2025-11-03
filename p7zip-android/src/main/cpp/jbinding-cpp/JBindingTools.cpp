@@ -5,7 +5,6 @@
  *      Author: boris
  */
 
-#include <7zip/IDecl.h>
 #include "SevenZipJBinding.h"
 
 #include "JBindingTools.h"
