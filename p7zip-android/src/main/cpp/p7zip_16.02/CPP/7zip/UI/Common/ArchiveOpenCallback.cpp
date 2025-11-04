@@ -69,7 +69,8 @@ struct CInFileStreamVol: public CInFileStream
 
   CInFileStreamVol() : CInFileStream(true) { }
  
-  ~CInFileStreamVol() override {
+  ~CInFileStreamVol()
+  {
     if (OpenCallbackRef)
       OpenCallbackImp->FileNames_WasUsed[FileNameIndex] = false;
   }

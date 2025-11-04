@@ -3,7 +3,6 @@
 #ifndef __MY_COM_H
 #define __MY_COM_H
 
-#include <mutex>
 #include "MyWindows.h"
 #include "NewHandler.h"
 
@@ -164,8 +163,7 @@ private:
 class CMyUnknownImp
 {
 public:
-
-    ULONG __m_RefCount;
+  ULONG __m_RefCount;
   CMyUnknownImp(): __m_RefCount(0) {}
 
   // virtual ~CMyUnknownImp() {};
@@ -184,7 +182,7 @@ public:
     MY_QUERYINTERFACE_ENTRY_UNKNOWN(i) \
     MY_QUERYINTERFACE_ENTRY(i)
 
-#define MY_QUERYINTERFACE_END else  return E_NOINTERFACE; ++__m_RefCount; /* AddRef(); */ return S_OK; }
+#define MY_QUERYINTERFACE_END else return E_NOINTERFACE; ++__m_RefCount; /* AddRef(); */ return S_OK; }
 
 #define MY_ADDREF_RELEASE \
 STDMETHOD_(ULONG, AddRef)() throw() { return ++__m_RefCount; } \

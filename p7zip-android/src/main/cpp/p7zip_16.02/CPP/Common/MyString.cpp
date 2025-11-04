@@ -568,12 +568,6 @@ void AString::Add_Space() { operator+=(' '); }
 void AString::Add_Space_if_NotEmpty() { if (!IsEmpty()) Add_Space(); }
 void AString::Add_LF() { operator+=('\n'); }
 
-void AString::Add_OptSpaced(const char *s)
-{
-    Add_Space_if_NotEmpty();
-    (*this) += s;
-}
-
 AString &AString::operator+=(const char *s)
 {
   unsigned len = MyStringLen(s);

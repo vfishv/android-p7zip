@@ -300,7 +300,6 @@ public:
   
   void Add_Space();
   void Add_Space_if_NotEmpty();
-  void Add_OptSpaced(const char *s);
   void Add_LF();
   void Add_PathSepar() { operator+=(CHAR_PATH_SEPARATOR); }
 

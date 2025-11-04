@@ -42,7 +42,7 @@ struct CFilterMode
   {
     if (Id == k_IA64)
       Delta = 16;
-    else if (Id == k_ARM || Id == k_PPC || Id == k_SPARC)
+    else if (Id == k_ARM || Id == k_PPC || Id == k_PPC)
       Delta = 4;
     else if (Id == k_ARMT)
       Delta = 2;

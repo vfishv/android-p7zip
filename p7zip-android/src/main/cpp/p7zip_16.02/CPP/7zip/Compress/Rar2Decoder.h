@@ -119,30 +119,26 @@ class CDecoder :
 {
   CLzOutWindow m_OutWindowStream;
   CBitDecoder m_InBitStream;
-
-  UInt32 m_RepDistPtr;
-  UInt32 m_RepDists[kNumRepDists];
-
-  UInt32 m_LastLength;
-
-  bool _isSolid;
-  bool _solidAllowed;
-  bool m_TablesOK;
-  bool m_AudioMode;
-
   NHuffman::CDecoder<kNumHuffmanBits, kMainTableSize> m_MainDecoder;
   NHuffman::CDecoder<kNumHuffmanBits, kDistTableSize> m_DistDecoder;
   NHuffman::CDecoder<kNumHuffmanBits, kLenTableSize> m_LenDecoder;
   NHuffman::CDecoder<kNumHuffmanBits, kMMTableSize> m_MMDecoders[NMultimedia::kNumChanelsMax];
   NHuffman::CDecoder<kNumHuffmanBits, kLevelTableSize> m_LevelDecoder;
 
-  UInt64 m_PackSize;
+  bool m_AudioMode;
 
-  unsigned m_NumChannels;
   NMultimedia::CFilter2 m_MmFilter;
+  unsigned m_NumChannels;
 
+  UInt32 m_RepDists[kNumRepDists];
+  UInt32 m_RepDistPtr;
+
+  UInt32 m_LastLength;
+  
   Byte m_LastLevels[kMaxTableSize];
 
+  UInt64 m_PackSize;
+  bool m_IsSolid;
 
   void InitStructures();
   UInt32 ReadBits(unsigned numBits);
@@ -159,6 +155,14 @@ public:
   CDecoder();
 
   MY_UNKNOWN_IMP1(ICompressSetDecoderProperties2)
+
+  /*
+  void ReleaseStreams()
+  {
+    m_OutWindowStream.ReleaseStream();
+    m_InBitStream.ReleaseStream();
+  }
+  */
 
   STDMETHOD(Code)(ISequentialInStream *inStream, ISequentialOutStream *outStream,
       const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo *progress);

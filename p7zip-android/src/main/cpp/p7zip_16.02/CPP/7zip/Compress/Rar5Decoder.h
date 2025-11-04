@@ -8,6 +8,7 @@
 #include "../../../C/Alloc.h"
 #include "../../../C/CpuArch.h"
 
+#include "../../Common/MyBuffer.h"
 #include "../../Common/MyCom.h"
 #include "../../Common/MyException.h"
 #include "../../Common/MyVector.h"
@@ -19,35 +20,35 @@
 namespace NCompress {
 namespace NRar5 {
 
-    class CMidBuffer
+class CMidBuffer
+{
+  Byte *_data;
+  size_t _size;
+
+  CLASS_NO_COPY(CMidBuffer)
+
+public:
+  CMidBuffer(): _data(NULL), _size(0) {};
+  ~CMidBuffer() { ::MidFree(_data); }
+
+  bool IsAllocated() const { return _data != NULL; }
+  operator       Byte *()       { return _data; }
+  operator const Byte *() const { return _data; }
+  size_t Size() const { return _size; }
+
+  void AllocAtLeast(size_t size)
+  {
+    if (size > _size)
     {
-        Byte *_data;
-        size_t _size;
-
-    CLASS_NO_COPY(CMidBuffer)
-
-    public:
-        CMidBuffer(): _data(NULL), _size(0) {};
-        ~CMidBuffer() { ::MidFree(_data); }
-
-        bool IsAllocated() const { return _data != NULL; }
-        operator       Byte *()       { return _data; }
-        operator const Byte *() const { return _data; }
-        size_t Size() const { return _size; }
-
-        void AllocAtLeast(size_t size)
-        {
-            if (size > _size)
-            {
-                const size_t kMinSize = (1 << 16);
-                if (size < kMinSize)
-                    size = kMinSize;
-                ::MidFree(_data);
-                _data = (Byte *)::MidAlloc(size);
-                _size = size;
-            }
-        }
-    };
+      const size_t kMinSize = (1 << 16);
+      if (size < kMinSize)
+        size = kMinSize;
+      ::MidFree(_data);
+      _data = (Byte *)::MidAlloc(size);
+      _size = size;
+    }
+  }
+};
 
 /*
 struct CInBufferException: public CSystemException
@@ -156,7 +157,7 @@ public:
     return *_buf++;
   }
 
-  UInt32 GetValue(unsigned numBits) const
+  UInt32 GetValue(unsigned numBits)
   {
     UInt32 v = ((UInt32)_buf[0] << 16) | ((UInt32)_buf[1] << 8) | (UInt32)_buf[2];
     v >>= (24 - numBits - _bitPos);
@@ -247,13 +248,6 @@ class CDecoder:
   bool _unsupportedFilter;
   bool _lzError;
   bool _writeError;
-
-  bool _isSolid;
-  bool _solidAllowed;
-  bool _tableWasFilled;
-  bool _wasInit;
-
-  Byte _dictSizeLog;
   
   // CBitDecoder _bitStream;
   Byte *_window;
@@ -273,6 +267,11 @@ class CDecoder:
   UInt64 _lzEnd;
   UInt64 _writtenFileSize;
   size_t _winSizeAllocated;
+
+  Byte _dictSizeLog;
+  bool _tableWasFilled;
+  bool _isSolid;
+  bool _wasInit;
 
   UInt32 _reps[kNumReps];
   UInt32 _lastLen;
