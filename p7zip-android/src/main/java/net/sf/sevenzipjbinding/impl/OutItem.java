@@ -1,5 +1,7 @@
 package net.sf.sevenzipjbinding.impl;
 
+import java.util.Date;
+
 import net.sf.sevenzipjbinding.ArchiveFormat;
 import net.sf.sevenzipjbinding.IOutArchive;
 import net.sf.sevenzipjbinding.IOutCreateCallback;
@@ -8,8 +10,6 @@ import net.sf.sevenzipjbinding.IOutItemBase;
 import net.sf.sevenzipjbinding.IOutItemGZip;
 import net.sf.sevenzipjbinding.IOutItemZip;
 import net.sf.sevenzipjbinding.SevenZipException;
-
-import java.util.Date;
 
 /**
  * Implementation of the all <code>IOutItemXxx</code> interfaces. Contains information about a single archive item
@@ -24,11 +24,12 @@ import java.util.Date;
  * <li> {@link IOutItemZip#getPropertyAttributes()}
  * <li> {@link IOutItemZip#setPropertyAttributes(Integer)}
  * </ul>
- *
- * @author Boris Brodski
+ * 
  * @see IOutCreateCallback#getItemInformation(int, OutItemFactory)
  * @see OutItemFactory
  * @see IOutItemBase
+ * 
+ * @author Boris Brodski
  * @since 9.20-2.00
  */
 public final class OutItem implements IOutItemAllFormats {
@@ -45,9 +46,8 @@ public final class OutItem implements IOutItemAllFormats {
     private String propertyUser;
     private String propertyGroup;
     private Boolean propertyIsAnti;
-
-    private String propertySymlink;
-
+    private String propertySymLink;
+    private String propertyHardLink;
 
     private Boolean updateIsNewData;
     private Boolean updateIsNewProperties;
@@ -220,15 +220,32 @@ public final class OutItem implements IOutItemAllFormats {
         this.propertyGroup = group;
     }
 
-    @Override
-    public String getSymlink() {
-        return propertySymlink;
+    /**
+     * {@inheritDoc}
+     */
+    public String getPropertySymLink() {
+        return propertySymLink;
     }
 
-    @Override
-    public void setSymlink(String symlink) {
-        this.propertySymlink=symlink;
+    /**
+     * {@inheritDoc}
+     */
+    public void setPropertySymLink(String propertySymLink) {
+        this.propertySymLink = propertySymLink;
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    public String getPropertyHardLink() {
+        return propertyHardLink;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setPropertyHardLink(String propertyHardLink) {
+        this.propertyHardLink = propertyHardLink;
     }
 
     /**
@@ -299,16 +316,16 @@ public final class OutItem implements IOutItemAllFormats {
                 throw new SevenZipException("updateOldArchiveItemIndex can't be null");
             }
 
-            if (updateOldArchiveItemIndex == -1) {
-                if (!updateIsNewData) {
+            if (updateOldArchiveItemIndex.intValue() == -1) {
+                if (!updateIsNewData.booleanValue()) {
                     throw new SevenZipException("updateOldArchiveItemIndex must be provided (updateIsNewData is false)");
                 }
-                if (!updateIsNewProperties) {
+                if (!updateIsNewProperties.booleanValue()) {
                     throw new SevenZipException(
                             "updateOldArchiveItemIndex must be provided (updateIsNewProperties is false)");
                 }
             }
-            if (updateIsNewData && !updateIsNewProperties) {
+            if (updateIsNewData.booleanValue() && !updateIsNewProperties.booleanValue()) {
                 throw new SevenZipException("updateIsNewProperties must be set (updateIsNewData is true)");
             }
         }

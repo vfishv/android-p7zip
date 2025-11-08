@@ -53,7 +53,6 @@ jclass VarTypeToJavaType(JNIEnvInstance & jniEnvInstance, VARTYPE vt);
 void ObjectToPropVariant(JNIEnvInstance & jniEnvInstance, jobject object, PROPVARIANT * propVariant);
 
 
-void localinit(JNIEnv *env);
 /**
  * Get java.lang.Boolean object from boolean value
  */

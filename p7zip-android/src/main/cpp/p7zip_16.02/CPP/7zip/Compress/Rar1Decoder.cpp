@@ -9,85 +9,77 @@
 namespace NCompress {
 namespace NRar1 {
 
-static const unsigned kNumBits = 12;
-
-static const Byte kShortLen1[16 * 3] =
-{
-  0,0xa0,0xd0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff,0xc0,0x80,0x90,0x98,0x9c,0xb0,0,
-  1,3,4,4,5,6,7,8,8,4,4,5,6,6,0,0,
-  1,4,4,4,5,6,7,8,8,4,4,5,6,6,4,0
-};
-
-static const Byte kShortLen2[16 * 3] =
-{
-  0,0x40,0x60,0xa0,0xd0,0xe0,0xf0,0xf8,0xfc,0xc0,0x80,0x90,0x98,0x9c,0xb0,0,
-  2,3,3,3,4,4,5,6,6,4,4,5,6,6,0,0,
-  2,3,3,4,4,4,5,6,6,4,4,5,6,6,4,0
-};
-
-static const Byte PosL1[kNumBits + 1]  = { 0,0,2,1,2,2,4,5,4,4,8,0,224 };
-static const Byte PosL2[kNumBits + 1]  = { 0,0,0,5,2,2,4,5,4,4,8,2,220 };
-
-static const Byte PosHf0[kNumBits + 1] = { 0,0,0,0,8,8,8,9,0,0,0,0,224 };
-static const Byte PosHf1[kNumBits + 1] = { 0,0,0,0,0,4,40,16,16,4,0,47,130 };
-static const Byte PosHf2[kNumBits + 1] = { 0,0,0,0,0,2,5,46,64,116,24,0,0 };
-static const Byte PosHf3[kNumBits + 1] = { 0,0,0,0,0,0,2,14,202,33,6,0,0 };
-static const Byte PosHf4[kNumBits + 1] = { 0,0,0,0,0,0,0,0,255,2,0,0,0 };
+static const UInt32 PosL1[] = {0,0,0,2,3,5,7,11,16,20,24,32,32, 256};
+static const UInt32 PosL2[] = {0,0,0,0,5,7,9,13,18,22,26,34,36, 256};
+static const UInt32 PosHf0[] = {0,0,0,0,0,8,16,24,33,33,33,33,33, 257};
+static const UInt32 PosHf1[] = {0,0,0,0,0,0,4,44,60,76,80,80,127, 257};
+static const UInt32 PosHf2[] = {0,0,0,0,0,0,2,7,53,117,233, 257,0};
+static const UInt32 PosHf3[] = {0,0,0,0,0,0,0,2,16,218,251, 257,0};
+static const UInt32 PosHf4[] = {0,0,0,0,0,0,0,0,0,255, 257,0,0};
 
 static const UInt32 kHistorySize = (1 << 16);
 
-CDecoder::CDecoder():
-   _isSolid(false),
-   _solidAllowed(false)
-   { }
+/*
+class CCoderReleaser
+{
+  CDecoder *m_Coder;
+public:
+  CCoderReleaser(CDecoder *coder): m_Coder(coder) {}
+  ~CCoderReleaser() { m_Coder->ReleaseStreams(); }
+};
+*/
 
-UInt32 CDecoder::ReadBits(unsigned numBits) { return m_InBitStream.ReadBits(numBits); }
+CDecoder::CDecoder(): m_IsSolid(false) { }
+
+void CDecoder::InitStructures()
+{
+  for (int i = 0; i < kNumRepDists; i++)
+    m_RepDists[i] = 0;
+  m_RepDistPtr = 0;
+  LastLength = 0;
+  LastDist = 0;
+}
+
+UInt32 CDecoder::ReadBits(int numBits) { return m_InBitStream.ReadBits(numBits); }
 
 HRESULT CDecoder::CopyBlock(UInt32 distance, UInt32 len)
 {
   if (len == 0)
-    return S_FALSE;
-  if (m_UnpackSize < len)
     return S_FALSE;
   m_UnpackSize -= len;
   return m_OutWindowStream.CopyBlock(distance, len) ? S_OK : S_FALSE;
 }
 
 
-UInt32 CDecoder::DecodeNum(const Byte *numTab)
+UInt32 CDecoder::DecodeNum(const UInt32 *posTab)
 {
-  /*
-  {
-    // we can check that tables are correct
-    UInt32 sum = 0;
-    for (unsigned i = 0; i <= kNumBits; i++)
-      sum += ((UInt32)numTab[i] << (kNumBits - i));
-    if (sum != (1 << kNumBits))
-      throw 111;
-  }
-  */
-
-  UInt32 val = m_InBitStream.GetValue(kNumBits);
-  UInt32 sum = 0;
-  unsigned i = 2;
-
+  UInt32 startPos = 2;
+  UInt32 num = m_InBitStream.GetValue(12);
   for (;;)
   {
-    UInt32 num = numTab[i];
-    UInt32 cur = num << (kNumBits - i);
-    if (val < cur)
+    UInt32 cur = (posTab[startPos + 1] - posTab[startPos]) << (12 - startPos);
+    if (num < cur)
       break;
-    i++;
-    val -= cur;
-    sum += num;
+    startPos++;
+    num -= cur;
   }
-  m_InBitStream.MovePos(i);
-  return ((val >> (kNumBits - i)) + sum);
+  m_InBitStream.MovePos(startPos);
+  return((num >> (12 - startPos)) + posTab[startPos]);
 }
 
+static const Byte kShortLen1 [] = {1,3,4,4,5,6,7,8,8,4,4,5,6,6 };
+static const Byte kShortLen1a[] = {1,4,4,4,5,6,7,8,8,4,4,5,6,6,4 };
+static const Byte kShortLen2 [] = {2,3,3,3,4,4,5,6,6,4,4,5,6,6 };
+static const Byte kShortLen2a[] = {2,3,3,4,4,4,5,6,6,4,4,5,6,6,4 };
+static const UInt32 kShortXor1[] = {0,0xa0,0xd0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff,0xc0,0x80,0x90,0x98,0x9c,0xb0};
+static const UInt32 kShortXor2[] = {0,0x40,0x60,0xa0,0xd0,0xe0,0xf0,0xf8,0xfc,0xc0,0x80,0x90,0x98,0x9c,0xb0};
 
 HRESULT CDecoder::ShortLZ()
 {
+  UInt32 len, saveLen, dist;
+  int distancePlace;
+  const Byte *kShortLen;
+  const UInt32 *kShortXor;
   NumHuf = 0;
 
   if (LCount == 2)
@@ -99,14 +91,20 @@ HRESULT CDecoder::ShortLZ()
 
   UInt32 bitField = m_InBitStream.GetValue(8);
 
-  UInt32 len, dist;
+  if (AvrLn1 < 37)
   {
-    const Byte *xors = (AvrLn1 < 37) ? kShortLen1 : kShortLen2;
-    const Byte *lens = xors + 16 + Buf60;
-    for (len = 0; ((bitField ^ xors[len]) >> (8 - lens[len])) != 0; len++);
-    m_InBitStream.MovePos(lens[len]);
+    kShortLen = Buf60 ? kShortLen1a : kShortLen1;
+    kShortXor = kShortXor1;
   }
-  
+  else
+  {
+    kShortLen = Buf60 ? kShortLen2a : kShortLen2;
+    kShortXor = kShortXor2;
+  }
+
+  for (len = 0; ((bitField ^ kShortXor[len]) & (~(0xff >> kShortLen[len]))) != 0; len++);
+  m_InBitStream.MovePos(kShortLen[len]);
+
   if (len >= 9)
   {
     if (len == 9)
@@ -114,11 +112,9 @@ HRESULT CDecoder::ShortLZ()
       LCount++;
       return CopyBlock(LastDist, LastLength);
     }
-
-    LCount = 0;
-
     if (len == 14)
     {
+      LCount = 0;
       len = DecodeNum(PosL2) + 5;
       dist = 0x8000 + ReadBits(15) - 1;
       LastLength = len;
@@ -126,22 +122,19 @@ HRESULT CDecoder::ShortLZ()
       return CopyBlock(dist, len);
     }
 
-    UInt32 saveLen = len;
+    LCount = 0;
+    saveLen = len;
     dist = m_RepDists[(m_RepDistPtr - (len - 9)) & 3];
-    
-    len = DecodeNum(PosL1);
-    
-    if (len == 0xff && saveLen == 10)
+    len = DecodeNum(PosL1) + 2;
+    if (len == 0x101 && saveLen == 10)
     {
-      Buf60 ^= 16;
+      Buf60 ^= 1;
       return S_OK;
     }
     if (dist >= 256)
-    {
       len++;
-      if (dist >= MaxDist3 - 1)
-        len++;
-    }
+    if (dist >= MaxDist3 - 1)
+      len++;
   }
   else
   {
@@ -149,23 +142,21 @@ HRESULT CDecoder::ShortLZ()
     AvrLn1 += len;
     AvrLn1 -= AvrLn1 >> 4;
     
-    unsigned distancePlace = DecodeNum(PosHf2) & 0xff;
-    
-    dist = ChSetA[distancePlace];
-    
-    if (distancePlace != 0)
+    distancePlace = DecodeNum(PosHf2) & 0xff;
+    dist = ChSetA[(unsigned)distancePlace];
+    if (--distancePlace != -1)
     {
       PlaceA[dist]--;
-      UInt32 lastDistance = ChSetA[(size_t)distancePlace - 1];
+      UInt32 lastDistance = ChSetA[(unsigned)distancePlace];
       PlaceA[lastDistance]++;
-      ChSetA[distancePlace] = lastDistance;
-      ChSetA[(size_t)distancePlace - 1] = dist;
+      ChSetA[(unsigned)distancePlace + 1] = lastDistance;
+      ChSetA[(unsigned)distancePlace] = dist;
     }
+    len += 2;
   }
 
   m_RepDists[m_RepDistPtr++] = dist;
   m_RepDistPtr &= 3;
-  len += 2;
   LastLength = len;
   LastDist = dist;
   return CopyBlock(dist, len);
@@ -186,10 +177,12 @@ HRESULT CDecoder::LongLZ()
     Nlzb = 0x90;
     Nhfb >>= 1;
   }
-  oldAvr2 = AvrLn2;
+  oldAvr2=AvrLn2;
 
-  if (AvrLn2 >= 64)
-    len = DecodeNum(AvrLn2 < 122 ? PosL1 : PosL2);
+  if (AvrLn2 >= 122)
+    len = DecodeNum(PosL2);
+  else if (AvrLn2 >= 64)
+    len = DecodeNum(PosL1);
   else
   {
     UInt32 bitField = m_InBitStream.GetValue(16);
@@ -200,8 +193,8 @@ HRESULT CDecoder::LongLZ()
     }
     else
     {
-      for (len = 0; ((bitField << len) & 0x8000) == 0; len++);
-      
+      for (len = 0; ((bitField << len) & 0x8000) == 0; len++)
+        ;
       m_InBitStream.MovePos(len + 1);
     }
   }
@@ -209,26 +202,24 @@ HRESULT CDecoder::LongLZ()
   AvrLn2 += len;
   AvrLn2 -= AvrLn2 >> 5;
 
-  {
-    const Byte *tab;
-         if (AvrPlcB >= 0x2900) tab = PosHf2;
-    else if (AvrPlcB >= 0x0700) tab = PosHf1;
-    else                        tab = PosHf0;
-    distancePlace = DecodeNum(tab); // [0, 256]
-  }
+  if (AvrPlcB > 0x28ff)
+    distancePlace = DecodeNum(PosHf2);
+  else if (AvrPlcB > 0x6ff)
+    distancePlace = DecodeNum(PosHf1);
+  else
+    distancePlace = DecodeNum(PosHf0);
 
   AvrPlcB += distancePlace;
   AvrPlcB -= AvrPlcB >> 8;
-
-  distancePlace &= 0xff;
   
   for (;;)
   {
-    dist = ChSetB[distancePlace];
+    dist = ChSetB[distancePlace & 0xff];
     newDistancePlace = NToPlB[dist++ & 0xff]++;
-    if (dist & 0xff)
+    if (!(dist & 0xff))
+      CorrHuff(ChSetB,NToPlB);
+    else
       break;
-    CorrHuff(ChSetB,NToPlB);
   }
 
   ChSetB[distancePlace] = ChSetB[newDistancePlace];
@@ -244,8 +235,9 @@ HRESULT CDecoder::LongLZ()
       AvrLn3++;
       AvrLn3 -= AvrLn3 >> 8;
     }
-    else if (AvrLn3 > 0)
-      AvrLn3--;
+    else
+      if (AvrLn3 > 0)
+        AvrLn3--;
   
   len += 3;
   
@@ -273,62 +265,57 @@ HRESULT CDecoder::HuffDecode()
   UInt32 curByte, newBytePlace;
   UInt32 len;
   UInt32 dist;
-  unsigned bytePlace;
-  {
-    const Byte *tab;
-    
-    if      (AvrPlc >= 0x7600)  tab = PosHf4;
-    else if (AvrPlc >= 0x5e00)  tab = PosHf3;
-    else if (AvrPlc >= 0x3600)  tab = PosHf2;
-    else if (AvrPlc >= 0x0e00)  tab = PosHf1;
-    else                        tab = PosHf0;
-    
-    bytePlace = DecodeNum(tab); // [0, 256]
-  }
+  int bytePlace;
+
+  if      (AvrPlc > 0x75ff)  bytePlace = DecodeNum(PosHf4);
+  else if (AvrPlc > 0x5dff)  bytePlace = DecodeNum(PosHf3);
+  else if (AvrPlc > 0x35ff)  bytePlace = DecodeNum(PosHf2);
+  else if (AvrPlc > 0x0dff)  bytePlace = DecodeNum(PosHf1);
+  else                       bytePlace = DecodeNum(PosHf0);
   
   if (StMode)
   {
-    if (bytePlace == 0)
+    if (--bytePlace == -1)
     {
       if (ReadBits(1))
       {
-        NumHuf = 0;
-        StMode = false;
+        NumHuf = StMode = 0;
         return S_OK;
       }
-      len = ReadBits(1) + 3;
-      dist = DecodeNum(PosHf2);
-      dist = (dist << 5) | ReadBits(5);
-      if (dist == 0)
-        return S_FALSE;
-      return CopyBlock(dist - 1, len);
+      else
+      {
+        len = (ReadBits(1)) ? 4 : 3;
+        dist = DecodeNum(PosHf2);
+        dist = (dist << 5) | ReadBits(5);
+        return CopyBlock(dist - 1, len);
+      }
     }
-    bytePlace--; // bytePlace is [0, 255]
   }
   else if (NumHuf++ >= 16 && FlagsCnt == 0)
-    StMode = true;
+    StMode = 1;
   
   bytePlace &= 0xff;
   AvrPlc += bytePlace;
   AvrPlc -= AvrPlc >> 8;
-  Nhfb += 16;
+  Nhfb+=16;
   
   if (Nhfb > 0xff)
   {
-    Nhfb = 0x90;
+    Nhfb=0x90;
     Nlzb >>= 1;
   }
 
-  m_UnpackSize--;
+  m_UnpackSize --;
   m_OutWindowStream.PutByte((Byte)(ChSet[bytePlace] >> 8));
 
   for (;;)
   {
     curByte = ChSet[bytePlace];
     newBytePlace = NToPl[curByte++ & 0xff]++;
-    if ((curByte & 0xff) <= 0xa1)
+    if ((curByte & 0xff) > 0xa1)
+      CorrHuff(ChSet, NToPl);
+    else
       break;
-    CorrHuff(ChSet, NToPl);
   }
 
   ChSet[bytePlace] = ChSet[newBytePlace];
@@ -340,10 +327,7 @@ HRESULT CDecoder::HuffDecode()
 void CDecoder::GetFlagsBuf()
 {
   UInt32 flags, newFlagsPlace;
-  UInt32 flagsPlace = DecodeNum(PosHf2); // [0, 256]
-
-  if (flagsPlace >= ARRAY_SIZE(ChSetC))
-    return;
+  UInt32 flagsPlace = DecodeNum(PosHf2);
 
   for (;;)
   {
@@ -359,6 +343,20 @@ void CDecoder::GetFlagsBuf()
   ChSetC[newFlagsPlace] = flags;
 }
 
+void CDecoder::InitData()
+{
+  if (!m_IsSolid)
+  {
+    AvrPlcB = AvrLn1 = AvrLn2 = AvrLn3 = NumHuf = Buf60 = 0;
+    AvrPlc = 0x3500;
+    MaxDist3 = 0x2001;
+    Nhfb = Nlzb = 0x80;
+  }
+  FlagsCnt = 0;
+  FlagBuf = 0;
+  StMode = 0;
+  LCount = 0;
+}
 
 void CDecoder::CorrHuff(UInt32 *CharSet,UInt32 *NumToPlace)
 {
@@ -371,130 +369,109 @@ void CDecoder::CorrHuff(UInt32 *CharSet,UInt32 *NumToPlace)
     NumToPlace[i] = (7 - i) * 32;
 }
 
-
+void CDecoder::InitHuff()
+{
+  for (UInt32 i = 0; i < 256; i++)
+  {
+    Place[i] = PlaceA[i] = PlaceB[i] = i;
+    PlaceC[i] = (~i + 1) & 0xff;
+    ChSet[i] = ChSetB[i] = i << 8;
+    ChSetA[i] = i;
+    ChSetC[i] = ((~i + 1) & 0xff) << 8;
+  }
+  memset(NToPl, 0, sizeof(NToPl));
+  memset(NToPlB, 0, sizeof(NToPlB));
+  memset(NToPlC, 0, sizeof(NToPlC));
+  CorrHuff(ChSetB, NToPlB);
+}
 
 HRESULT CDecoder::CodeReal(ISequentialInStream *inStream, ISequentialOutStream *outStream,
     const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo * /* progress */)
 {
-  if (!inSize || !outSize)
+  if (inSize == NULL || outSize == NULL)
     return E_INVALIDARG;
-
-  if (_isSolid && !_solidAllowed)
-    return S_FALSE;
-
-  _solidAllowed = false;
 
   if (!m_OutWindowStream.Create(kHistorySize))
     return E_OUTOFMEMORY;
   if (!m_InBitStream.Create(1 << 20))
     return E_OUTOFMEMORY;
 
-  m_UnpackSize = *outSize;
-
+  m_UnpackSize = (Int64)*outSize;
   m_OutWindowStream.SetStream(outStream);
-  m_OutWindowStream.Init(_isSolid);
+  m_OutWindowStream.Init(m_IsSolid);
   m_InBitStream.SetStream(inStream);
   m_InBitStream.Init();
 
-  // InitData
-
-  FlagsCnt = 0;
-  FlagBuf = 0;
-  StMode = false;
-  LCount = 0;
-
-  if (!_isSolid)
+  // CCoderReleaser coderReleaser(this);
+  InitData();
+  if (!m_IsSolid)
   {
-    AvrPlcB = AvrLn1 = AvrLn2 = AvrLn3 = NumHuf = Buf60 = 0;
-    AvrPlc = 0x3500;
-    MaxDist3 = 0x2001;
-    Nhfb = Nlzb = 0x80;
-
-    {
-      // InitStructures
-      for (int i = 0; i < kNumRepDists; i++)
-        m_RepDists[i] = 0;
-      m_RepDistPtr = 0;
-      LastLength = 0;
-      LastDist = 0;
-    }
-    
-    // InitHuff
-    
-    for (UInt32 i = 0; i < 256; i++)
-    {
-      Place[i] = PlaceA[i] = PlaceB[i] = i;
-      UInt32 c = (~i + 1) & 0xff;
-      PlaceC[i] = c;
-      ChSet[i] = ChSetB[i] = i << 8;
-      ChSetA[i] = i;
-      ChSetC[i] = c << 8;
-    }
-    memset(NToPl, 0, sizeof(NToPl));
-    memset(NToPlB, 0, sizeof(NToPlB));
-    memset(NToPlC, 0, sizeof(NToPlC));
-    CorrHuff(ChSetB, NToPlB);
+    InitStructures();
+    InitHuff();
   }
-   
   if (m_UnpackSize > 0)
   {
     GetFlagsBuf();
     FlagsCnt = 8;
   }
 
-  while (m_UnpackSize != 0)
+  while (m_UnpackSize > 0)
   {
-    if (!StMode)
+    if (StMode)
     {
+      RINOK(HuffDecode());
+      continue;
+    }
+
+    if (--FlagsCnt < 0)
+    {
+      GetFlagsBuf();
+      FlagsCnt=7;
+    }
+
+    if (FlagBuf & 0x80)
+    {
+      FlagBuf <<= 1;
+      if (Nlzb > Nhfb)
+      {
+        RINOK(LongLZ());
+      }
+      else
+      {
+        RINOK(HuffDecode());
+      }
+    }
+    else
+    {
+      FlagBuf <<= 1;
       if (--FlagsCnt < 0)
       {
         GetFlagsBuf();
         FlagsCnt = 7;
       }
-      
       if (FlagBuf & 0x80)
       {
         FlagBuf <<= 1;
         if (Nlzb > Nhfb)
         {
+          RINOK(HuffDecode());
+        }
+        else
+        {
           RINOK(LongLZ());
-          continue;
         }
       }
       else
       {
         FlagBuf <<= 1;
-        
-        if (--FlagsCnt < 0)
-        {
-          GetFlagsBuf();
-          FlagsCnt = 7;
-        }
-
-        if ((FlagBuf & 0x80) == 0)
-        {
-          FlagBuf <<= 1;
-          RINOK(ShortLZ());
-          continue;
-        }
-        
-        FlagBuf <<= 1;
-        
-        if (Nlzb <= Nhfb)
-        {
-          RINOK(LongLZ());
-          continue;
-        }
+        RINOK(ShortLZ());
       }
     }
-
-    RINOK(HuffDecode());
   }
-  
-  _solidAllowed = true;
+  if (m_UnpackSize < 0)
+    return S_FALSE;
   return m_OutWindowStream.Flush();
 }
-
 
 STDMETHODIMP CDecoder::Code(ISequentialInStream *inStream, ISequentialOutStream *outStream,
     const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo *progress)
@@ -509,7 +486,7 @@ STDMETHODIMP CDecoder::SetDecoderProperties2(const Byte *data, UInt32 size)
 {
   if (size < 1)
     return E_INVALIDARG;
-  _isSolid = ((data[0] & 1) != 0);
+  m_IsSolid = ((data[0] & 1) != 0);
   return S_OK;
 }
 

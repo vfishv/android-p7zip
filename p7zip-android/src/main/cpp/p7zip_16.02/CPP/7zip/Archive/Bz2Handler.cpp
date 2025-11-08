@@ -29,7 +29,7 @@ class CHandler:
 {
   CMyComPtr<IInStream> _stream;
   CMyComPtr<ISequentialInStream> _seqStream;
-
+  
   bool _isArc;
   bool _needSeekToStart;
   bool _dataAfterEnd;
@@ -230,7 +230,7 @@ STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   CMyComPtr<ISequentialOutStream> outStream(outStreamSpec);
   outStreamSpec->SetStream(realOutStream);
   outStreamSpec->Init();
-
+  
   realOutStream.Release();
 
   CLocalProgress *lps = new CLocalProgress;
@@ -242,7 +242,7 @@ STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   UInt64 numStreams = 0;
 
   decoderSpec->InitNumBlocks();
-
+  
   HRESULT result = S_OK;
 
   for (;;)
@@ -275,7 +275,7 @@ STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
       result = S_OK;
       break;
     }
-
+    
     if (!decoderSpec->IsBz)
     {
       _dataAfterEnd = true;
@@ -312,7 +312,7 @@ STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     _numStreams_Defined = true;
     _numBlocks_Defined = true;
   }
-
+  
   decoderSpec->ReleaseInStream();
   outStream.Release();
 
@@ -377,7 +377,7 @@ STDMETHODIMP CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numIt
   if (!updateCallback)
     return E_FAIL;
   RINOK(updateCallback->GetUpdateItemInfo(0, &newData, &newProps, &indexInArchive));
-
+ 
   if (IntToBool(newProps))
   {
     {
@@ -388,7 +388,7 @@ STDMETHODIMP CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numIt
           return E_INVALIDARG;
     }
   }
-
+  
   if (IntToBool(newData))
   {
     UInt64 size;

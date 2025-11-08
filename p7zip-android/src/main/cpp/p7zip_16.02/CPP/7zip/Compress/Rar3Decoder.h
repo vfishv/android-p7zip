@@ -31,7 +31,7 @@ const UInt32 kLenTableSize = 28;
 const UInt32 kMainTableSize = 256 + 1 + 1 + 1 + kNumReps + kNumLen2Symbols + kLenTableSize;
 const UInt32 kDistTableSize = 60;
 
-const unsigned kNumAlignBits = 4;
+const int kNumAlignBits = 4;
 const UInt32 kAlignTableSize = (1 << kNumAlignBits) + 1;
 
 const UInt32 kLevelTableSize = 20;
@@ -102,7 +102,7 @@ const UInt32 kBot = (1 << 15);
 
 struct CRangeDecoder
 {
-  IPpmd7_RangeDec vt;
+  IPpmd7_RangeDec s;
   UInt32 Range;
   UInt32 Code;
   UInt32 Low;
@@ -130,7 +130,7 @@ public:
     }
   }
 
-  CRangeDecoder() throw();
+  CRangeDecoder();
 };
 
 struct CFilter: public NVm::CProgram
@@ -158,7 +158,7 @@ struct CTempFilter: public NVm::CProgramInitState
   }
 };
 
-const unsigned kNumHuffmanBits = 15;
+const int kNumHuffmanBits = 15;
 
 class CDecoder:
   public ICompressCoder,
@@ -189,12 +189,9 @@ class CDecoder:
   NVm::CVm _vm;
   CRecordVector<CFilter *> _filters;
   CRecordVector<CTempFilter *>  _tempFilters;
-  unsigned _numEmptyTempFilters;
   UInt32 _lastFilter;
 
-  bool _isSolid;
-  bool _solidAllowed;
-  // bool _errorMode;
+  bool m_IsSolid;
 
   bool _lzMode;
   bool _unsupportedFilter;
@@ -203,7 +200,6 @@ class CDecoder:
   UInt32 PrevAlignCount;
 
   bool TablesRead;
-  bool TablesOK;
 
   CPpmd7 _ppmd;
   int PpmEscChar;
@@ -212,7 +208,7 @@ class CDecoder:
   HRESULT WriteDataToStream(const Byte *data, UInt32 size);
   HRESULT WriteData(const Byte *data, UInt32 size);
   HRESULT WriteArea(UInt32 startPtr, UInt32 endPtr);
-  void ExecuteFilter(unsigned tempFilterIndex, NVm::CBlockRef &outBlockRef);
+  void ExecuteFilter(int tempFilterIndex, NVm::CBlockRef &outBlockRef);
   HRESULT WriteBuf();
 
   void InitFilters();
@@ -220,7 +216,7 @@ class CDecoder:
   bool ReadVmCodeLZ();
   bool ReadVmCodePPM();
   
-  UInt32 ReadBits(unsigned numBits);
+  UInt32 ReadBits(int numBits);
 
   HRESULT InitPPM();
   int DecodePpmSymbol();

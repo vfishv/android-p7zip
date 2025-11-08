@@ -44,57 +44,15 @@ static const UInt32 kVmCodeSizeMax = 1 << 16;
 
 extern "C" {
 
-
-#ifndef MY_offsetof
-#ifdef offsetof
-#define MY_offsetof(type, m) offsetof(type, m)
-    /*
-    #define MY_offsetof(type, m) FIELD_OFFSET(type, m)
-    */
-#else
-#define MY_offsetof(type, m) ((size_t)&(((type *)0)->m))
-#endif
-#endif
-
-#ifndef MY_container_of
-
-/*
-  GCC shows warning: "perhaps the 'offsetof' macro was used incorrectly"
-    GCC 3.4.4 : classes with constructor
-    GCC 4.8.1 : classes with non-public variable members"
-*/
-
-#define MY_container_of(ptr, type, m) ((type *)((char *)(1 ? (ptr) : &((type *)0)->m) - MY_offsetof(type, m)))
-
-
-#endif
-
-
-
-#define CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m) ((type *)(ptr))
-
-/*
-#define CONTAINER_FROM_VTBL(ptr, type, m) CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m)
-*/
-#define CONTAINER_FROM_VTBL(ptr, type, m) MY_container_of(ptr, type, m)
-
-#define CONTAINER_FROM_VTBL_CLS(ptr, type, m) CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m)
-/*
-#define CONTAINER_FROM_VTBL_CLS(ptr, type, m) CONTAINER_FROM_VTBL(ptr, type, m)
-*/
-
-
-#define GET_RangeDecoder CRangeDecoder *p = CONTAINER_FROM_VTBL_CLS(pp, CRangeDecoder, vt);
-
-static UInt32 Range_GetThreshold(const IPpmd7_RangeDec *pp, UInt32 total)
+static UInt32 Range_GetThreshold(void *pp, UInt32 total)
 {
-  GET_RangeDecoder;
+  CRangeDecoder *p = (CRangeDecoder *)pp;
   return p->Code / (p->Range /= total);
 }
 
-static void Range_Decode(const IPpmd7_RangeDec *pp, UInt32 start, UInt32 size)
+static void Range_Decode(void *pp, UInt32 start, UInt32 size)
 {
-  GET_RangeDecoder;
+  CRangeDecoder *p = (CRangeDecoder *)pp;
   start *= p->Range;
   p->Low += start;
   p->Code -= start;
@@ -102,28 +60,28 @@ static void Range_Decode(const IPpmd7_RangeDec *pp, UInt32 start, UInt32 size)
   p->Normalize();
 }
 
-static UInt32 Range_DecodeBit(const IPpmd7_RangeDec *pp, UInt32 size0)
+static UInt32 Range_DecodeBit(void *pp, UInt32 size0)
 {
-  GET_RangeDecoder;
+  CRangeDecoder *p = (CRangeDecoder *)pp;
   if (p->Code / (p->Range >>= 14) < size0)
   {
-    Range_Decode(&p->vt, 0, size0);
+    Range_Decode(p, 0, size0);
     return 0;
   }
   else
   {
-    Range_Decode(&p->vt, size0, (1 << 14) - size0);
+    Range_Decode(p, size0, (1 << 14) - size0);
     return 1;
   }
 }
 
 }
 
-CRangeDecoder::CRangeDecoder() throw()
+CRangeDecoder::CRangeDecoder()
 {
-  vt.GetThreshold = reinterpret_cast<UInt32 (*)(void *, UInt32)>(Range_GetThreshold);
-  vt.Decode = reinterpret_cast<void (*)(void *, UInt32, UInt32)>(Range_Decode);
-  vt.DecodeBit = reinterpret_cast<UInt32 (*)(void *, UInt32)>(Range_DecodeBit);
+  s.GetThreshold = Range_GetThreshold;
+  s.Decode = Range_Decode;
+  s.DecodeBit = Range_DecodeBit;
 }
 
 CDecoder::CDecoder():
@@ -134,8 +92,7 @@ CDecoder::CDecoder():
   _writtenFileSize(0),
   _vmData(0),
   _vmCode(0),
-  _isSolid(false),
-  _solidAllowed(false)
+  m_IsSolid(false)
 {
   Ppmd7_Construct(&_ppmd);
 }
@@ -176,7 +133,7 @@ HRESULT CDecoder::WriteArea(UInt32 startPtr, UInt32 endPtr)
   return WriteData(_window, endPtr);
 }
 
-void CDecoder::ExecuteFilter(unsigned tempFilterIndex, NVm::CBlockRef &outBlockRef)
+void CDecoder::ExecuteFilter(int tempFilterIndex, NVm::CBlockRef &outBlockRef)
 {
   CTempFilter *tempFilter = _tempFilters[tempFilterIndex];
   tempFilter->InitR[6] = (UInt32)_writtenFileSize;
@@ -185,11 +142,9 @@ void CDecoder::ExecuteFilter(unsigned tempFilterIndex, NVm::CBlockRef &outBlockR
   CFilter *filter = _filters[tempFilter->FilterIndex];
   if (!filter->IsSupported)
     _unsupportedFilter = true;
-  if (!_vm.Execute(filter, tempFilter, outBlockRef, filter->GlobalData))
-    _unsupportedFilter = true;
+  _vm.Execute(filter, tempFilter, outBlockRef, filter->GlobalData);
   delete tempFilter;
-  _tempFilters[tempFilterIndex] = NULL;
-  _numEmptyTempFilters++;
+  _tempFilters[tempFilterIndex] = 0;
 }
 
 HRESULT CDecoder::WriteBuf()
@@ -266,7 +221,6 @@ HRESULT CDecoder::WriteBuf()
 void CDecoder::InitFilters()
 {
   _lastFilter = 0;
-  _numEmptyTempFilters = 0;
   unsigned i;
   for (i = 0; i < _tempFilters.Size(); i++)
     delete _tempFilters[i];
@@ -316,27 +270,24 @@ bool CDecoder::AddVmCode(UInt32 firstByte, UInt32 codeSize)
     filter->ExecCount++;
   }
 
-  if (_numEmptyTempFilters != 0)
+  unsigned numEmptyItems = 0;
   {
-    unsigned num = _tempFilters.Size();
-    CTempFilter **tempFilters = &_tempFilters.Front();
-    
-    unsigned w = 0;
-    for (unsigned i = 0; i < num; i++)
+    FOR_VECTOR (i, _tempFilters)
     {
-      CTempFilter *tf = tempFilters[i];
-      if (tf)
-        tempFilters[w++] = tf;
+      _tempFilters[i - numEmptyItems] = _tempFilters[i];
+      if (!_tempFilters[i])
+        numEmptyItems++;
+      if (numEmptyItems != 0)
+        _tempFilters[i] = NULL;
     }
-
-    _tempFilters.DeleteFrom(w);
-    _numEmptyTempFilters = 0;
   }
-  
-  if (_tempFilters.Size() > MAX_UNPACK_FILTERS)
-    return false;
+  if (numEmptyItems == 0)
+  {
+    _tempFilters.Add(NULL);
+    numEmptyItems = 1;
+  }
   CTempFilter *tempFilter = new CTempFilter;
-  _tempFilters.Add(tempFilter);
+  _tempFilters[_tempFilters.Size() - numEmptyItems] = tempFilter;
   tempFilter->FilterIndex = filterIndex;
  
   UInt32 blockStart = inp.ReadEncodedUInt32();
@@ -451,7 +402,7 @@ bool CDecoder::ReadVmCodePPM()
 
 #define RIF(x) { if (!(x)) return S_FALSE; }
 
-UInt32 CDecoder::ReadBits(unsigned numBits) { return m_InBitStream.BitDecoder.ReadBits(numBits); }
+UInt32 CDecoder::ReadBits(int numBits) { return m_InBitStream.BitDecoder.ReadBits(numBits); }
 
 // ---------- PPM ----------
 
@@ -460,7 +411,7 @@ HRESULT CDecoder::InitPPM()
   unsigned maxOrder = (unsigned)ReadBits(7);
 
   bool reset = ((maxOrder & 0x20) != 0);
-  UInt32 maxMB = 0;
+  int maxMB = 0;
   if (reset)
     maxMB = (Byte)ReadBits(8);
   else
@@ -494,7 +445,7 @@ HRESULT CDecoder::InitPPM()
   return S_OK;
 }
 
-int CDecoder::DecodePpmSymbol() { return Ppmd7_DecodeSymbol(&_ppmd, &m_InBitStream.vt); }
+int CDecoder::DecodePpmSymbol() { return Ppmd7_DecodeSymbol(&_ppmd, &m_InBitStream.s); }
 
 HRESULT CDecoder::DecodePPM(Int32 num, bool &keepDecompressing)
 {
@@ -594,21 +545,17 @@ HRESULT CDecoder::ReadTables(bool &keepDecompressing)
     return InitPPM();
   }
 
-  TablesRead = false;
-  TablesOK = false;
-
   _lzMode = true;
   PrevAlignBits = 0;
   PrevAlignCount = 0;
 
   Byte levelLevels[kLevelTableSize];
-  Byte lens[kTablesSizesSum];
+  Byte newLevels[kTablesSizesSum];
 
   if (ReadBits(1) == 0)
     memset(m_LastLevels, 0, kTablesSizesSum);
 
-  unsigned i;
-
+  int i;
   for (i = 0; i < kLevelTableSize; i++)
   {
     UInt32 length = ReadBits(4);
@@ -626,45 +573,39 @@ HRESULT CDecoder::ReadTables(bool &keepDecompressing)
     }
     levelLevels[i] = (Byte)length;
   }
-  
   RIF(m_LevelDecoder.Build(levelLevels));
-  
   i = 0;
-  
-  do
+  while (i < kTablesSizesSum)
   {
     UInt32 sym = m_LevelDecoder.Decode(&m_InBitStream.BitDecoder);
     if (sym < 16)
     {
-      lens[i] = Byte((sym + m_LastLevels[i]) & 15);
+      newLevels[i] = Byte((sym + m_LastLevels[i]) & 15);
       i++;
     }
     else if (sym > kLevelTableSize)
       return S_FALSE;
     else
     {
-      unsigned num = ((sym - 16) & 1) * 4;
-      num += num + 3 + (unsigned)ReadBits(num + 3);
-      num += i;
-      if (num > kTablesSizesSum)
-        num = kTablesSizesSum;
-      Byte v = 0;
-      if (sym < 16 + 2)
+      int num;
+      if (((sym - 16) & 1) == 0)
+        num = ReadBits(3) + 3;
+      else
+        num = ReadBits(7) + 11;
+      if (sym < 18)
       {
         if (i == 0)
           return S_FALSE;
-        v = lens[(size_t)i - 1];
+        for (; num > 0 && i < kTablesSizesSum; num--, i++)
+          newLevels[i] = newLevels[i - 1];
       }
-      do
-        lens[i++] = v;
-      while (i < num);
+      else
+      {
+        for (; num > 0 && i < kTablesSizesSum; num--)
+          newLevels[i++] = 0;
+      }
     }
   }
-  while (i < kTablesSizesSum);
-
-  if (InputEofError())
-    return S_FALSE;
-
   TablesRead = true;
 
   // original code has check here:
@@ -676,15 +617,12 @@ HRESULT CDecoder::ReadTables(bool &keepDecompressing)
   }
   */
 
-  RIF(m_MainDecoder.Build(&lens[0]));
-  RIF(m_DistDecoder.Build(&lens[kMainTableSize]));
-  RIF(m_AlignDecoder.Build(&lens[kMainTableSize + kDistTableSize]));
-  RIF(m_LenDecoder.Build(&lens[kMainTableSize + kDistTableSize + kAlignTableSize]));
+  RIF(m_MainDecoder.Build(&newLevels[0]));
+  RIF(m_DistDecoder.Build(&newLevels[kMainTableSize]));
+  RIF(m_AlignDecoder.Build(&newLevels[kMainTableSize + kDistTableSize]));
+  RIF(m_LenDecoder.Build(&newLevels[kMainTableSize + kDistTableSize + kAlignTableSize]));
 
-  memcpy(m_LastLevels, lens, kTablesSizesSum);
-
-  TablesOK = true;
-
+  memcpy(m_LastLevels, newLevels, kTablesSizesSum);
   return S_OK;
 }
 
@@ -703,15 +641,16 @@ public:
 
 HRESULT CDecoder::ReadEndOfBlock(bool &keepDecompressing)
 {
-  if (ReadBits(1) == 0)
+  if (ReadBits(1) != 0)
   {
-    // new file
-    keepDecompressing = false;
-    TablesRead = (ReadBits(1) == 0);
-    return S_OK;
+    // old file
+    TablesRead = false;
+    return ReadTables(keepDecompressing);
   }
-  TablesRead = false;
-  return ReadTables(keepDecompressing);
+  // new file
+  keepDecompressing = false;
+  TablesRead = (ReadBits(1) == 0);
+  return S_OK;
 }
 
 UInt32 kDistStart[kDistTableSize];
@@ -821,7 +760,7 @@ HRESULT CDecoder::DecodeLZ(bool &keepDecompressing)
         if (sym2 >= kDistTableSize)
           return S_FALSE;
         rep0 = kDistStart[sym2];
-        unsigned numBits = kDistDirectBits[sym2];
+        int numBits = kDistDirectBits[sym2];
         if (sym2 >= (kNumAlignBits * 2) + 2)
         {
           if (numBits > kNumAlignBits)
@@ -868,13 +807,11 @@ HRESULT CDecoder::DecodeLZ(bool &keepDecompressing)
   return S_OK;
 }
 
-
 HRESULT CDecoder::CodeReal(ICompressProgressInfo *progress)
 {
   _writtenFileSize = 0;
   _unsupportedFilter = false;
-  
-  if (!_isSolid)
+  if (!m_IsSolid)
   {
     _lzSize = 0;
     _winPos = 0;
@@ -887,23 +824,13 @@ HRESULT CDecoder::CodeReal(ICompressProgressInfo *progress)
     PpmEscChar = 2;
     PpmError = true;
     InitFilters();
-    // _errorMode = false;
   }
-
-  /*
-  if (_errorMode)
-    return S_FALSE;
-  */
-
-  if (!_isSolid || !TablesRead)
+  if (!m_IsSolid || !TablesRead)
   {
     bool keepDecompressing;
     RINOK(ReadTables(keepDecompressing));
     if (!keepDecompressing)
-    {
-      _solidAllowed = true;
       return S_OK;
-    }
   }
 
   for (;;)
@@ -911,8 +838,6 @@ HRESULT CDecoder::CodeReal(ICompressProgressInfo *progress)
     bool keepDecompressing;
     if (_lzMode)
     {
-      if (!TablesOK)
-        return S_FALSE;
       RINOK(DecodeLZ(keepDecompressing))
     }
     else
@@ -928,9 +853,6 @@ HRESULT CDecoder::CodeReal(ICompressProgressInfo *progress)
     if (!keepDecompressing)
       break;
   }
-
-  _solidAllowed = true;
-
   RINOK(WriteBuf());
   UInt64 packSize = m_InBitStream.BitDecoder.GetProcessedSize();
   RINOK(progress->SetRatioInfo(&packSize, &_writtenFileSize));
@@ -950,10 +872,6 @@ STDMETHODIMP CDecoder::Code(ISequentialInStream *inStream, ISequentialOutStream 
   {
     if (!inSize)
       return E_INVALIDARG;
-
-    if (_isSolid && !_solidAllowed)
-      return S_FALSE;
-    _solidAllowed = false;
 
     if (!_vmData)
     {
@@ -983,8 +901,8 @@ STDMETHODIMP CDecoder::Code(ISequentialInStream *inStream, ISequentialOutStream 
     _unpackSize = outSize ? *outSize : (UInt64)(Int64)-1;
     return CodeReal(progress);
   }
-  catch(const CInBufferException &e)  { /* _errorMode = true; */ return e.ErrorCode; }
-  catch(...) { /* _errorMode = true; */ return S_FALSE; }
+  catch(const CInBufferException &e)  { return e.ErrorCode; }
+  catch(...) { return S_FALSE; }
   // CNewException is possible here. But probably CNewException is caused
   // by error in data stream.
 }
@@ -993,7 +911,7 @@ STDMETHODIMP CDecoder::SetDecoderProperties2(const Byte *data, UInt32 size)
 {
   if (size < 1)
     return E_INVALIDARG;
-  _isSolid = ((data[0] & 1) != 0);
+  m_IsSolid = ((data[0] & 1) != 0);
   return S_OK;
 }
 

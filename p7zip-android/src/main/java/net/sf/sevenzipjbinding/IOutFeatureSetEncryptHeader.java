@@ -1,24 +1,25 @@
 package net.sf.sevenzipjbinding;
 
 /**
- * Interface used to operate with sequential output stream.
+ * Feature interface for the setting 'encrypt header'. Use {@link SevenZip#openOutArchive(ArchiveFormat)} or one of the
+ * <code>SevenZip.openOutArchiveXxx()</code> methods to get implementation of this interface.
+ *
+ * @see IOutCreateArchive
  *
  * @author Boris Brodski
- * @since 4.65-1
+ * @since 16.02-2.01
+ *
  */
-public interface ISequentialOutStream {
+public interface IOutFeatureSetEncryptHeader {
+
     /**
-     * Write <code>data</code> byte array to the stream. If {@code data.length > 0} this function must write at least 1
-     * byte. This function is allowed to write less than <code>data.length</code> bytes. You must call Write function in
-     * loop, if you need to write exact amount of data.<br>
+     * Enable/disable header encryption for password protected archives. If enabled, the archive header containing file
+     * names and other metadata will be encrypted as well.<br>
      * <br>
-     * <i>Note:</i> depending on the archive format and the data size this method may be called from different threads.
-     * Synchronized implementation may be required.
+     * <i>Note:</i> Implement {@link ICryptoGetTextPassword} in your callback class to turn on the encryption.
      *
-     * @param data
-     *            data to write
-     * @return count of written bytes
-     *
+     * @param enabled
+     *            <code>true</code> enable header encryption, otherwise <code>false</code>
      * @throws SevenZipException
      *             in error case. If this method ends with an exception, the current operation will be reported to 7-Zip
      *             as failed. There are no guarantee, that there are no further call back methods will get called. The
@@ -27,5 +28,5 @@ public interface ISequentialOutStream {
      *             four exceptions depending on the situation can be saved for further analysis. See
      *             {@link SevenZipException} and {@link SevenZipException#printStackTraceExtended()} for details.
      */
-    public int write(byte[] data) throws SevenZipException;
+    public void setHeaderEncryption(boolean enabled) throws SevenZipException;
 }

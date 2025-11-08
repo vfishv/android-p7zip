@@ -116,6 +116,9 @@ inline std::ostream & operator<<(JOut jout, jobject object) {
     jclass objectClass = jout._env->GetObjectClass(object);
     MY_ASSERT(objectClass)
     jmethodID id = jout._env->GetMethodID(objectClass, "toString", "()Ljava/lang/String;");
+#ifdef __ANDROID_API__
+    jout._env->DeleteLocalRef(objectClass);
+#endif
     jstring string = (jstring) jout._env->CallObjectMethod(object, id);
     MY_ASSERT(string)//FATALIF(string == NULL, "CallNonvirtualObjectMethod() returns NULL");
 
@@ -137,6 +140,9 @@ inline std::ostream & operator<<(JOut jout, jclass clazz) {
 
     jstring string = (jstring) jout._env->CallNonvirtualObjectMethod(clazz, classClass, id);
     MY_ASSERT(string)//FATALIF(string == NULL, "CallNonvirtualObjectMethod() returns NULL");
+#ifdef __ANDROID_API__
+    jout._env->DeleteLocalRef(classClass);
+#endif
 
     std::ostream & stream = jout << string;
     jout._env->DeleteLocalRef(string);
@@ -200,11 +206,5 @@ inline std::ostream & operator<<(JOut jout, char const * str) {
 #   define TRACE_CLASS_CHECK_UNKNOWN_IMPL_DESTRUCTION(classname) {}
 //    #define TRACE_OBJECT_ENSURE_DESTRUCTION_WITH_STACK_CMYCOMPTR(object) {}
 #endif
-
-#include <android/log.h>
-
-#define  LOG_TAG    "p7zip"
-#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 #endif /* DEBUG_H_ */

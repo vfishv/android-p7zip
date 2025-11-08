@@ -37,35 +37,34 @@ void CodecTools::init() {
             gzipIndex = i;
         } else if (wcscmp(name, L"bzip2") == 0) {
             bzip2Index = i;
-        } else if (wcscmp(name, L"xz") == 0) {
-            xzIndex = i;
-        } else if (wcscmp(name, L"zstd") == 0) {
-			zstdIndex = i;
-		}
+        }
 	}
 }
 
 /**
  * Return index of the archive type. Save to UString converted archive type name into 'formatNameString'.
  * @param env instance of JNIEnv
- * @param formatName archive type format name
+ * @param archiveFormat Java ArchiveFormat object
  */
-static int getIndexByName(JNIEnv * env, jstring formatName) {
-	UString formatNameString;
-	const jchar * formatNameJChars = env->GetStringChars(formatName, nullptr);
-	formatNameString = UnicodeHelper(formatNameJChars,
-									 static_cast<size_t>(env->GetStringLength(formatName)));
-	env->ReleaseStringChars(formatName, formatNameJChars);
-
+static int getIndexByName(JNIEnv * env, UString & formatNameString) {
 	TRACE("Format: " << formatNameString)
 	return codecTools.codecs.FindFormatForArchiveType(formatNameString);
+}
+
+void CodecTools::getArchiveFormatName(JNIEnv * env, jobject archiveFormat, UString & formatNameString) {
+    jstring formatName = jni::ArchiveFormat::methodName_Get(env, archiveFormat);
+    formatNameString = FromJChar(env, formatName);
+#ifdef __ANDROID_API__
+	env->DeleteLocalRef(formatName);
+#endif
 }
 
 int CodecTools::getArchiveFormatIndex(JNIEnv * env, jobject archiveFormat) {
 	int index = jni::ArchiveFormat::codecIndex_Get(env, archiveFormat);
 	if (index == -2) {
-		jstring formatName = jni::ArchiveFormat::methodName_Get(env, archiveFormat);
-		index = getIndexByName(env, formatName);
+	    UString formatNameString;
+	    getArchiveFormatName(env, archiveFormat, formatNameString);
+		index = getIndexByName(env, formatNameString);
 		jni::ArchiveFormat::codecIndex_Set(env, archiveFormat, index);
 	}
 	return index;

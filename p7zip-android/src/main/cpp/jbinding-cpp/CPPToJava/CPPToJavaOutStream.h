@@ -8,10 +8,10 @@ private:
     jni::ISeekableStream * _iSeekableStream;
 
 public:
-    CPPToJavaOutStream(JBindingSession & jbindingSession, JNIEnv * initEnv, jobject outStream) :
-        CPPToJavaSequentialOutStream(jbindingSession, initEnv, outStream), //
-                _iOutStream(jni::IOutStream::_getInstanceFromObject(initEnv, outStream)), //
-                _iSeekableStream(jni::ISeekableStream::_getInstanceFromObject(initEnv, outStream)) {
+    CPPToJavaOutStream(JBindingSession & jbindingSession, JNIEnv * initEnv, jobject inStream) :
+        CPPToJavaSequentialOutStream(jbindingSession, initEnv, inStream), //
+                _iOutStream(jni::IOutStream::_getInstanceFromObject(initEnv, inStream)), //
+                _iSeekableStream(jni::ISeekableStream::_getInstanceFromObject(initEnv, inStream)) {
         TRACE_OBJECT_CREATION("CPPToJavaOutStream")
     }
 
@@ -26,7 +26,7 @@ public:
         return result;
     }
 
-    STDMETHOD(QueryInterface)(REFGUID iid, void ** outObject) noexcept {
+    STDMETHOD(QueryInterface)(REFGUID iid, void ** outObject) throw() {
         if (iid == IID_IOutStream) {
             *outObject = (void *) (IOutStream *) this;
             AddRef();
@@ -36,11 +36,11 @@ public:
         return CPPToJavaSequentialOutStream::QueryInterface(iid, outObject);
     }
 
-    STDMETHOD_(ULONG, AddRef)() noexcept {
+    STDMETHOD_(ULONG, AddRef)() throw() {
         return CPPToJavaSequentialOutStream::AddRef();
     }
 
-    STDMETHOD_(ULONG, Release)() noexcept {
+    STDMETHOD_(ULONG, Release)() {
         return CPPToJavaSequentialOutStream::Release();
     }
 

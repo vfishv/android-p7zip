@@ -69,6 +69,7 @@ LOCAL_SRC_FILES := \
   ../../../../CPP/7zip/Archive/Common/ParseProperties.cpp \
   ../../../../CPP/7zip/Archive/DeflateProps.cpp \
   ../../../../CPP/7zip/Archive/GzHandler.cpp \
+  ../../../../CPP/7zip/Archive/LzHandler.cpp \
   ../../../../CPP/7zip/Archive/LzmaHandler.cpp \
   ../../../../CPP/7zip/Archive/PpmdHandler.cpp \
   ../../../../CPP/7zip/Archive/SplitHandler.cpp \
@@ -89,6 +90,7 @@ LOCAL_SRC_FILES := \
   ../../../../CPP/7zip/Archive/Zip/ZipOut.cpp \
   ../../../../CPP/7zip/Archive/Zip/ZipRegister.cpp \
   ../../../../CPP/7zip/Archive/Zip/ZipUpdate.cpp \
+  ../../../../CPP/7zip/Archive/ZstdHandler.cpp \
   ../../../../CPP/7zip/Common/CWrappers.cpp \
   ../../../../CPP/7zip/Common/CreateCoder.cpp \
   ../../../../CPP/7zip/Common/FilePathAutoRename.cpp \
@@ -147,6 +149,9 @@ LOCAL_SRC_FILES := \
   ../../../../CPP/7zip/Compress/QuantumDecoder.cpp \
   ../../../../CPP/7zip/Compress/ShrinkDecoder.cpp \
   ../../../../CPP/7zip/Compress/ZDecoder.cpp \
+  ../../../../CPP/7zip/Compress/ZstdDecoder.cpp \
+  ../../../../CPP/7zip/Compress/ZstdEncoder.cpp \
+  ../../../../CPP/7zip/Compress/ZstdRegister.cpp \
   ../../../../CPP/7zip/Crypto/7zAes.cpp \
   ../../../../CPP/7zip/Crypto/7zAesRegister.cpp \
   ../../../../CPP/7zip/Crypto/HmacSha1.cpp \
@@ -255,6 +260,19 @@ LOCAL_SRC_FILES := \
   ../../../../C/XzDec.c \
   ../../../../C/XzEnc.c \
   ../../../../C/XzIn.c \
+  ../../../../C/ZStd/entropy_common.c \
+  ../../../../C/ZStd/error_private.c \
+  ../../../../C/ZStd/fse_compress.c \
+  ../../../../C/ZStd/fse_decompress.c \
+  ../../../../C/ZStd/huf_compress.c \
+  ../../../../C/ZStd/huf_decompress.c \
+  ../../../../C/ZStd/xxhash.c \
+  ../../../../C/ZStd/zstd_common.c \
+  ../../../../C/ZStd/zstd_compress.c \
+  ../../../../C/ZStd/zstd_decompress.c \
+  ../../../../C/zstdmt/zstdmt_common.c \
+  ../../../../C/zstdmt/zstdmt_compress.c \
+  ../../../../C/zstdmt/zstdmt_decompress.c \
 
 # Needed since ANDROID 5, these programs run on android-16 (Android 4.1+)
 LOCAL_CFLAGS += -fPIE

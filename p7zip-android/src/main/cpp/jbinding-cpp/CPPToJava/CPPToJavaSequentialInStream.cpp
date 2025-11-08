@@ -1,46 +1,43 @@
-#include <ScopedLocalRef.h>
 #include "SevenZipJBinding.h"
 
 #include "JBindingTools.h"
 #include "CPPToJavaSequentialInStream.h"
 
 
-STDMETHODIMP CPPToJavaSequentialInStream::Read(void *data, UInt32 size, UInt32 *processedSize) {
+STDMETHODIMP CPPToJavaSequentialInStream::Read(void *data, UInt32 size, UInt32 *processedSize)
+{
     TRACE_OBJECT_CALL("Read");
 
     JNIEnvInstance jniEnvInstance(_jbindingSession);
 
     if (processedSize) {
-        *processedSize = 0;
+    	*processedSize = 0;
     }
 
+	jbyteArray byteArray = jniEnvInstance->NewByteArray(size);
 
-//    ScopedLocalRef<jbyteArray> barr(jniEnvInstance, jniEnvInstance->NewByteArray(size));
+	if (!byteArray) {
+	    jniEnvInstance.reportError("Out of local resources or out of memory");
+	}
 
-//    if (!barr.get()) {
-//        jniEnvInstance.reportError("Out of local resources or out of memory");
-//    }
-    ScopedLocalRef<jobject> buffer(jniEnvInstance, jniEnvInstance->NewDirectByteBuffer(data, size));
+	jint wasRead = _iSequentialInStream->read(jniEnvInstance, _javaImplementation, byteArray);
+	if (jniEnvInstance.exceptionCheck())
+	{
+	    jniEnvInstance->DeleteLocalRef(byteArray);
+		return S_FALSE;
+	}
 
-    if (!buffer.get()) {
-        jniEnvInstance.reportError("Out of local resources or out of memory");
-    }
+	if (processedSize)
+	{
+		*processedSize = (UInt32)wasRead;
+	}
 
-    jint wasRead = _iSequentialInStream->read(jniEnvInstance, _javaImplementation, buffer.get(),
-                                              size);
-    if (jniEnvInstance.exceptionCheck()) {
-        return S_FALSE;
-    }
+	jbyte * buffer = jniEnvInstance->GetByteArrayElements(byteArray, NULL);
+	memcpy(data, buffer, size);
+	jniEnvInstance->ReleaseByteArrayElements(byteArray, buffer, JNI_ABORT);
 
-    if (processedSize) {
-        *processedSize = (UInt32) wasRead;
-    }
+	jniEnvInstance->DeleteLocalRef(byteArray);
 
-//    jniEnvInstance->GetByteArrayRegion(barr.get(), 0, wasRead, static_cast<jbyte *>(data));
-//	jbyte * buffer = jniEnvInstance->GetByteArrayElements(byteArray, NULL);
-//	memcpy(data, buffer, size);
-//	jniEnvInstance->ReleaseByteArrayElements(byteArray, buffer, JNI_ABORT);
-
-    return S_OK;
+	return S_OK;
 }
 

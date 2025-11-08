@@ -10,7 +10,7 @@ import net.sf.sevenzipjbinding.SevenZipException;
 
 /**
  * Zip specific archive create and update class.
- *
+ * 
  * @author Boris Brodski
  * @since 9.20-2.00
  */
@@ -24,18 +24,8 @@ public class OutArchiveZipImpl extends OutArchiveImpl<IOutItemZip> implements IO
         featureSetLevel(compressionLevel);
     }
 
-    @Override
-    public void setThreadCount(int threadCount) throws SevenZipException {
-        featureSetThreadCount(threadCount);
-    }
-
-    @Override
-    public void setEncryptionMethod(String encryptionMethod) throws SevenZipException {
-        featureSetEncryptionMethod(encryptionMethod);
-    }
-
     public void createArchive(IOutStream outStream, int numberOfItems,
-                              IOutCreateCallback<? extends IOutItemZip> outCreateCallback) throws SevenZipException {
+            IOutCreateCallback<? extends IOutItemZip> outCreateCallback) throws SevenZipException {
         createArchive((ISequentialOutStream) outStream, numberOfItems, outCreateCallback);
     }
 

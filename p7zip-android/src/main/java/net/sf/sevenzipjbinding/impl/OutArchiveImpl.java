@@ -1,6 +1,7 @@
 package net.sf.sevenzipjbinding.impl;
 
-import androidx.annotation.Keep;
+import java.io.IOException;
+import java.io.PrintStream;
 
 import net.sf.sevenzipjbinding.ArchiveFormat;
 import net.sf.sevenzipjbinding.IInArchive;
@@ -10,88 +11,72 @@ import net.sf.sevenzipjbinding.IOutItemBase;
 import net.sf.sevenzipjbinding.ISequentialOutStream;
 import net.sf.sevenzipjbinding.SevenZipException;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 /**
  * Common archive create and update class.
  *
- * @param <T> the type of the item callback implementation
- * @author Boris Brodski
+ * @param <T>
+ *            the type of the item callback implementation
+ *
  * @see OutArchive7zImpl
  * @see OutArchiveZipImpl
  * @see OutArchiveGZipImpl
  * @see OutArchiveBZip2Impl
  * @see OutArchiveTarImpl
+ *
+ * @author Boris Brodski
  * @since 9.20-2.00
  */
-// TODO null check all parameters: If null slips through into native code there will be no NPE :( 
+// TODO null check all parameters: If null slips through into native code there will be no NPE :(
 public class OutArchiveImpl<T extends IOutItemBase> implements IOutArchive<T> {
 
-    @Keep
     private long jbindingSession;
-    @Keep
     private long sevenZipArchiveInstance;
 
     /**
      * Instance of {@link IInArchive} for connected OutArchives.
      */
-    @Keep
-    private volatile IInArchive inArchive;
+    private IInArchive inArchive;
 
     /**
      * Archive format enum value.
      */
-    @Keep
     private ArchiveFormat archiveFormat;
 
+    private Boolean headerEncryption;
+    private int compressionLevel = -1;
+    private int threadCount = -1;
     private PrintStream tracePrintStream;
-
-    private final Map<String, Object> properties = new HashMap<>(8);
-
     private boolean trace; // Read by native code
+    private boolean closed;
 
     protected void setInArchive(IInArchive inArchive) {
         this.inArchive = inArchive;
     }
 
+    protected void featureSetHeaderEncryption(boolean enabled) {
+        this.headerEncryption = Boolean.valueOf(enabled);
+    }
+
     protected void featureSetLevel(int compressionLevel) {
-        properties.put("X", compressionLevel);
+        this.compressionLevel = compressionLevel;
     }
 
     protected void featureSetThreadCount(int threadCount) {
-        properties.put("MT", threadCount);
+        this.threadCount = threadCount;
     }
-
-    protected void featureSetEncryptionMethod(String encryptionMethod) {
-        if (encryptionMethod != null) {
-            properties.put("EM", encryptionMethod);
-        }
-
-    }
-
 
     protected void applyFeatures() throws SevenZipException {
-        if (properties.isEmpty()) {
-            return;
+        ensureOpened();
+        if (compressionLevel != -1) {
+            nativeSetLevel(compressionLevel);
         }
-        Set<Map.Entry<String, Object>> entries = properties.entrySet();
-
-        int size = entries.size();
-        String[] names = new String[size];
-        Object[] values = new Object[size];
-
-        int i = 0;
-        for (Map.Entry<String, Object> entry : entries) {
-            names[i] = entry.getKey();
-            values[i] = entry.getValue();
-            i++;
+        if (headerEncryption != null) {
+            nativeSetHeaderEncryption(headerEncryption.booleanValue());
         }
-        nativeSetProperties(names, values);
 
+        if (threadCount >= 0) {
+            nativeSetMultithreading(threadCount);
+        }
     }
 
     /**
@@ -105,33 +90,37 @@ public class OutArchiveImpl<T extends IOutItemBase> implements IOutArchive<T> {
         this.archiveFormat = archiveFormat;
     }
 
+    protected native void nativeSetHeaderEncryption(boolean encryptHeader) throws SevenZipException;
+
+    protected native void nativeSetLevel(int compressionLevel) throws SevenZipException;
+
     /**
      * Set solid features.
      *
-     * @param solidBlockSpec <code>null</code> - turn solid off
-     * @throws SevenZipException 7-Zip or 7-Zip-JBinding error occur. Use {@link SevenZipException#printStackTraceExtended()} to get
-     *                           stack traces of this SevenZipException and of the all thrown 'cause by' exceptions.
+     * @param solidBlockSpec
+     *            <code>null</code> - turn solid off
+     * @throws SevenZipException
+     *             7-Zip or 7-Zip-JBinding error occur. Use {@link SevenZipException#printStackTraceExtended()} to get
+     *             stack traces of this SevenZipException and of the all thrown 'cause by' exceptions.
      */
-    protected void setSolidSpecInternal(String solidBlockSpec) throws SevenZipException {
-        if (solidBlockSpec != null) {
-            properties.put("S", solidBlockSpec);
-        }
-    }
+    protected native void nativeSetSolidSpec(String solidBlockSpec) throws SevenZipException;
+
+    protected native void nativeSetMultithreading(int threadCount) throws SevenZipException;
 
     private native void nativeUpdateItems(ISequentialOutStream outStream, int numberOfItems,
-                                          Object archiveUpdateCallback) throws SevenZipException;
-
-
-    protected native void nativeSetProperties(String[] names, Object[] values) throws SevenZipException;
+            Object archiveUpdateCallback) throws SevenZipException;
 
     /**
      * {@inheritDoc}
      */
     public void close() throws IOException {
-        if (inArchive != null) {
-            return; // In case of connected OutArchive no explicit closing necessary. 
+        if (closed) {
+            return;
         }
-        inArchive = null;
+        closed = true;
+        if (inArchive != null) {
+            return; // In case of connected OutArchive no explicit closing necessary.
+        }
         nativeClose();
     }
 
@@ -142,11 +131,12 @@ public class OutArchiveImpl<T extends IOutItemBase> implements IOutArchive<T> {
      */
     public void updateItems(ISequentialOutStream outStream, int numberOfItems, IOutCreateCallback<T> outUpdateCallback)
             throws SevenZipException {
+        ensureOpened();
         doUpdateItems(outStream, numberOfItems, outUpdateCallback);
     }
 
     private void doUpdateItems(ISequentialOutStream outStream, int numberOfItems,
-                               IOutCreateCallback<?> archiveCreateCallback) throws SevenZipException {
+            IOutCreateCallback<?> archiveCreateCallback) throws SevenZipException {
         applyFeatures();
         nativeUpdateItems(outStream, numberOfItems, archiveCreateCallback);
     }
@@ -155,7 +145,8 @@ public class OutArchiveImpl<T extends IOutItemBase> implements IOutArchive<T> {
      * {@inheritDoc}
      */
     public void createArchive(ISequentialOutStream outStream, int numberOfItems,
-                              IOutCreateCallback<? extends T> outCreateCallback) throws SevenZipException {
+            IOutCreateCallback<? extends T> outCreateCallback) throws SevenZipException {
+        ensureOpened();
         doUpdateItems(outStream, numberOfItems, outCreateCallback);
     }
 
@@ -167,7 +158,7 @@ public class OutArchiveImpl<T extends IOutItemBase> implements IOutArchive<T> {
     }
 
     // Called by native code
-    private void traceMessage(String message) {
+    private final void traceMessage(String message) {
         if (trace) {
             if (tracePrintStream == null) {
                 System.out.println(message);
@@ -203,5 +194,14 @@ public class OutArchiveImpl<T extends IOutItemBase> implements IOutArchive<T> {
      */
     public boolean isTrace() {
         return trace;
+    }
+
+    private void ensureOpened() throws SevenZipException {
+        if (closed) {
+            throw new SevenZipException("OutArchive closed");
+        }
+        if (inArchive != null) {
+            ((InArchiveImpl) inArchive).ensureOpened();
+        }
     }
 }

@@ -965,10 +965,10 @@ HRESULT CInArchive::ReadLocalItemAfterCdItemFull(CItemEx &item)
     if (item.HasDescriptor())
     {
       // pkzip's version without descriptor is not supported
-//      RINOK(Seek(ArcInfo.Base + item.GetDataPosition() + item.PackSize));
-//      if (ReadUInt32() != NSignature::kDataDescriptor)
-//        return S_FALSE;
-//      UInt32 crc = ReadUInt32();
+      RINOK(Seek(ArcInfo.Base + item.GetDataPosition() + item.PackSize));
+      if (ReadUInt32() != NSignature::kDataDescriptor)
+        return S_FALSE;
+      UInt32 crc = ReadUInt32();
       UInt64 packSize, unpackSize;
 
       /*
@@ -980,12 +980,12 @@ HRESULT CInArchive::ReadLocalItemAfterCdItemFull(CItemEx &item)
       else
       */
       {
-//        packSize = ReadUInt32();
-//        unpackSize = ReadUInt32();
+        packSize = ReadUInt32();
+        unpackSize = ReadUInt32();
       }
 
-//      if (crc != item.Crc || item.PackSize != packSize || item.Size != unpackSize)
-//        return S_FALSE;
+      if (crc != item.Crc || item.PackSize != packSize || item.Size != unpackSize)
+        return S_FALSE;
     }
   }
   catch(...) { return S_FALSE; }
@@ -1454,10 +1454,7 @@ HRESULT CVols::ParseArcName(IArchiveOpenVolumeCallback *volCallback)
   if (result == S_FALSE || !ZipStream)
   {
     if (MissingName.IsEmpty())
-    {
-      MissingZip = true;
       MissingName = volName;
-    }
     return S_OK;
   }
 
@@ -1991,11 +1988,6 @@ HRESULT CInArchive::ReadHeaders2(CObjectVector<CItemEx> &items)
 
   if (!IsMultiVol)
   {
-    if (EcdVolIndex == 0 && Vols.MissingZip && Vols.StartIsExe)
-    {
-      Vols.MissingName.Empty();
-      Vols.MissingZip = false;
-    }
     UseDisk_in_SingleVol = true;
 
     if (localsWereRead)

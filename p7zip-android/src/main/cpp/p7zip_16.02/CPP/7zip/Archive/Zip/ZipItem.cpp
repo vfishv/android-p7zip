@@ -176,18 +176,13 @@ UInt32 CItem::GetWinAttrib() const
       if (FromCentral)
         winAttrib = ExternalAttrib;
       break;
-//#ifdef FILE_ATTRIBUTE_UNIX_EXTENSION
-//    case NFileHeader::NHostOS::kUnix:
-//        winAttrib = (ExternalAttrib & 0xFFFF0000) | FILE_ATTRIBUTE_UNIX_EXTENSION;
-//        if (winAttrib & (MY_LIN_S_IFDIR << 16))
-//		winAttrib |= FILE_ATTRIBUTE_DIRECTORY;
-//        return winAttrib;
-//#endif
-    case NHostOS::kUnix:
-      // do we need to clear 16 low bits in this case?
-      if (FromCentral)
-        winAttrib = ExternalAttrib & 0xFFFF0000;
-      break;
+#ifdef FILE_ATTRIBUTE_UNIX_EXTENSION
+    case NFileHeader::NHostOS::kUnix:
+        winAttrib = (ExternalAttrib & 0xFFFF0000) | FILE_ATTRIBUTE_UNIX_EXTENSION; 
+        if (winAttrib & (MY_LIN_S_IFDIR << 16))
+		winAttrib |= FILE_ATTRIBUTE_DIRECTORY;
+        return winAttrib;
+#endif
   }
   if (IsDir()) // test it;
     winAttrib |= FILE_ATTRIBUTE_DIRECTORY;
@@ -210,33 +205,33 @@ bool CItem::GetPosixAttrib(UInt32 &attrib) const
 
 void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, bool useSpecifiedCodePage, UINT codePage) const
 {
-  bool isUtf8 = false;
+  bool isUtf8 = IsUtf8();
   bool ignore_Utf8_Errors = true;
   
-//  if (!isUtf8)
-//  {
-//    {
-//      const unsigned id = isComment ?
-//          NFileHeader::NExtraID::kIzUnicodeComment:
-//          NFileHeader::NExtraID::kIzUnicodeName;
-//      const CObjectVector<CExtraSubBlock> &subBlocks = GetMainExtra().SubBlocks;
-//
-//      FOR_VECTOR (i, subBlocks)
-//      {
-//        const CExtraSubBlock &sb = subBlocks[i];
-//        if (sb.ID == id)
-//        {
-//          AString utf;
-//          if (sb.ExtractIzUnicode(CrcCalc(s, s.Len()), utf))
-//            if (ConvertUTF8ToUnicode(utf, res))
-//              return;
-//          break;
-//        }
-//      }
-//    }
-
-    //if (useSpecifiedCodePage)
-    //  isUtf8 = (codePage == CP_UTF8);
+  if (!isUtf8)
+  {
+    {
+      const unsigned id = isComment ?
+          NFileHeader::NExtraID::kIzUnicodeComment:
+          NFileHeader::NExtraID::kIzUnicodeName;
+      const CObjectVector<CExtraSubBlock> &subBlocks = GetMainExtra().SubBlocks;
+      
+      FOR_VECTOR (i, subBlocks)
+      {
+        const CExtraSubBlock &sb = subBlocks[i];
+        if (sb.ID == id)
+        {
+          AString utf;
+          if (sb.ExtractIzUnicode(CrcCalc(s, s.Len()), utf))
+            if (ConvertUTF8ToUnicode(utf, res))
+              return;
+          break;
+        }
+      }
+    }
+    
+    if (useSpecifiedCodePage)
+      isUtf8 = (codePage == CP_UTF8);
     #ifdef _WIN32
     else if (GetHostOS() == NFileHeader::NHostOS::kUnix)
     {
@@ -247,12 +242,12 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
       ignore_Utf8_Errors = false;
     }
     #endif
-//  }
+  }
   
   
-//  if (isUtf8)
-//    if (ConvertUTF8ToUnicode(s, res) || ignore_Utf8_Errors)
-//      return;
+  if (isUtf8)
+    if (ConvertUTF8ToUnicode(s, res) || ignore_Utf8_Errors)
+      return;
   
   MultiByteToUnicodeString2(res, s, useSpecifiedCodePage ? codePage : GetCodePage());
 }

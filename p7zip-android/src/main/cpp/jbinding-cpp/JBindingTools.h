@@ -18,6 +18,12 @@ class JNINativeCallContext;
 class JBindingSession;
 class JNIEnvInstance;
 
+#ifdef __ANDROID_API__
+#include <string>
+namespace jni { inline void prepareExceptionCheck(JNIEnv * env); }
+jclass findClass(JNIEnv* env, std::string name);
+#endif
+
 template<typename T>
 struct CMyComPtrWrapper {
     CMyComPtr<T> _ptr;
@@ -53,9 +59,17 @@ class JBindingSession {
     friend class JNIEnvInstance;
     typedef std::map<ThreadId, ThreadContext> ThreadContextMap;
 
+    std::list<CMyComPtrWrapper<IUnknown> > _objectList; // TODO REMOVE unused list
+    std::list<JNINativeCallContext> _jniNativeCallContextList;
     ThreadContextMap _threadContextMap;
     PlatformCriticalSection _threadContextMapCriticalSection;
     static JavaVM * _vm;
+
+#ifdef __ANDROID_API__
+public:
+    static jmethodID _classLoaderID;
+    static std::map<std::string, jobject> _classLoaderObjects;
+#endif
 
 #ifdef USE_MY_ASSERTS
 public:
@@ -106,8 +120,17 @@ private:
         if (!threadContext._javaNativeContext.size() && !threadContext._env) {
             // Attach new thread
             TRACE("Attaching current thread to VM.")
+#ifdef USE_MY_ASSERTS
+            _attachedThreadCountCriticalSection.Enter();
+            _attachedThreadCount++;
+            _attachedThreadCountCriticalSection.Leave();
+#endif
             jint result;
-            if ((result = _vm->AttachCurrentThread(&threadContext._env, NULL))
+#ifdef __ANDROID_API__
+            if ((result = _vm->AttachCurrentThread((JNIEnv**) &threadContext._env, NULL))
+#else
+            if ((result = _vm->AttachCurrentThread((void**) &threadContext._env, NULL))
+#endif
                     || threadContext._env == NULL) {
                 TRACE("New thread couldn't be attached: " << result)
                 // throw SevenZipException("Can't attach current thread (id: %i) to the VM", currentThreadId);
@@ -136,6 +159,11 @@ private:
         ThreadContext & threadContext = _threadContextMap[threadId];
         if (!--threadContext._attachedThreadCount && threadContext._wasAttached) {
             MY_ASSERT(threadContext._javaNativeContext.size() == 0);
+#ifdef USE_MY_ASSERTS
+            _attachedThreadCountCriticalSection.Enter();
+            _attachedThreadCount--;
+            _attachedThreadCountCriticalSection.Leave();
+#endif
             _vm->DetachCurrentThread();
             _threadContextMap.erase(threadId);
         }
@@ -155,18 +183,33 @@ public:
 
     bool exceptionCheck(JNIEnv * env) {
         jni::prepareExceptionCheck(env);
-        ScopedLocalRef<jthrowable> exceptionLocalRef(env, env->ExceptionOccurred());
-        if (exceptionLocalRef.get()) {
+        jthrowable exceptionLocalRef = env->ExceptionOccurred();
+        if (exceptionLocalRef) {
             env->ExceptionClear();
-            handleThrownException(exceptionLocalRef.get());
+            handleThrownException(exceptionLocalRef);
+            env->DeleteLocalRef(exceptionLocalRef);
             return true;
         }
         return false;
     }
 
+    void addObject(IUnknown * object) {
+        _objectList.push_back(CMyComPtrWrapper<IUnknown> (object));
+    }
+
+    void closeSession(JNIEnv * initEnv) {
+        _objectList.clear();
+    }
 
     ~JBindingSession() {
-
+        MY_ASSERT(_objectList.size() == 0);
+        //        ThreadContextMap::iterator i = _threadContextMap.begin();
+        //        while (i != _threadContextMap.end()) {
+        //            printf("Thread Id: %i, attached threads: %i, native contexts: %i\n", i->first,
+        //                    i->second._attachedThreadCount, i->second._javaNativeContext.size());
+        //            fflush(stdout);
+        //            i++;
+        //        }
         MY_ASSERT(_threadContextMap.size() == 0);
 #ifdef TRACE_OBJECTS_ON
         TraceJBindingSessionDestruction();
@@ -236,10 +279,11 @@ public:
     bool exceptionCheck(JNIEnv * env) {
         jni::prepareExceptionCheck(env);
 
-        ScopedLocalRef<jthrowable> exceptionLocalRef(env, env->ExceptionOccurred());
-        if (exceptionLocalRef.get()) {
+        jthrowable exceptionLocalRef = env->ExceptionOccurred();
+        if (exceptionLocalRef) {
             env->ExceptionClear();
-            exceptionThrown(env, exceptionLocalRef.get());
+            exceptionThrown(env, exceptionLocalRef);
+            env->DeleteLocalRef(exceptionLocalRef);
             return true;
         }
 
@@ -274,7 +318,7 @@ class JNIEnvInstance {
     JNIEnv * _env;
     bool _isCallback;
 
-//    void * operator new(size_t i);
+    void * operator new(size_t i);
 
     void initCallback() {
         MY_ASSERT(_isCallback);

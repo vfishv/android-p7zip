@@ -162,7 +162,7 @@ HRESULT CDecoder::CodeSpec(ISequentialInStream * inStream,
   if (ZSTDMT_isError(result)) {
     if (result == (size_t)-ZSTDMT_error_canceled)
       return E_ABORT;
-    return S_FALSE;
+    return ErrorOut(result);
   }
 
   /* 4) free resources */

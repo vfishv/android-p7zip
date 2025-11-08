@@ -7,7 +7,7 @@ import net.sf.sevenzipjbinding.SevenZipException;
 
 /**
  * 7z specific archive create and update class.
- * 
+ *
  * @author Boris Brodski
  * @since 9.20-2.00
  */
@@ -19,6 +19,10 @@ public class OutArchive7zImpl extends OutArchiveImpl<IOutItem7z> implements IOut
 
     public void setLevel(int compressionLevel) {
         featureSetLevel(compressionLevel);
+    }
+
+    public void setHeaderEncryption(boolean enabled) throws SevenZipException {
+        featureSetHeaderEncryption(enabled);
     }
 
     /**
@@ -66,12 +70,12 @@ public class OutArchive7zImpl extends OutArchiveImpl<IOutItem7z> implements IOut
             stringBuilder.append("B");
         }
         if (stringBuilder.length() > 0) {
-            setSolidSpecInternal(stringBuilder.toString());
+            nativeSetSolidSpec(stringBuilder.toString());
         }
 
         // Set solid block configuration
         if (!solid) {
-            setSolidSpecInternal(null);
+            nativeSetSolidSpec(null);
         }
     }
 

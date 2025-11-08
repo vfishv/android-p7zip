@@ -7,13 +7,13 @@
 
 class CPPToJavaAbstract : public Object {
 protected:
-    JBindingSession &_jbindingSession;
+    JBindingSession & _jbindingSession;
     jobject _javaImplementation;
 
 protected:
-    CPPToJavaAbstract(JBindingSession &jbindingSession, JNIEnv *initEnv,
+    CPPToJavaAbstract(JBindingSession & jbindingSession, JNIEnv * initEnv,
                       jobject javaImplementation) :
-            _jbindingSession(jbindingSession) {
+        _jbindingSession(jbindingSession) {
         TRACE_OBJECT_CREATION("CPPToJavaAbstract");
 
         _javaImplementation = initEnv->NewGlobalRef(javaImplementation);

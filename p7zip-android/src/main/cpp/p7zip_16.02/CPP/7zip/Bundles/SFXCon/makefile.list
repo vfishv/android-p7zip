@@ -58,6 +58,8 @@ SRCS=\
   ../../../../CPP/7zip/Compress/LzmaRegister.cpp \
   ../../../../CPP/7zip/Compress/PpmdDecoder.cpp \
   ../../../../CPP/7zip/Compress/PpmdRegister.cpp \
+  ../../../../CPP/7zip/Compress/ZstdDecoder.cpp \
+  ../../../../CPP/7zip/Compress/ZstdRegister.cpp \
   ../../../../CPP/7zip/Crypto/7zAes.cpp \
   ../../../../CPP/7zip/Crypto/7zAesRegister.cpp \
   ../../../../CPP/7zip/Crypto/MyAes.cpp \
@@ -116,6 +118,15 @@ SRCS_C=\
   ../../../../C/Ppmd7Dec.c \
   ../../../../C/Sha256.c \
   ../../../../C/Threads.c \
+  ../../../../C/ZStd/entropy_common.c \
+  ../../../../C/ZStd/error_private.c \
+  ../../../../C/ZStd/fse_decompress.c \
+  ../../../../C/ZStd/huf_decompress.c \
+  ../../../../C/ZStd/xxhash.c \
+  ../../../../C/ZStd/zstd_common.c \
+  ../../../../C/ZStd/zstd_decompress.c \
+  ../../../../C/zstdmt/zstdmt_common.c \
+  ../../../../C/zstdmt/zstdmt_decompress.c \
 
 StdAfx.h.gch : ../../../myWindows/StdAfx.h
 	rm -f StdAfx.h.gch
@@ -152,6 +163,24 @@ Sha256.o : ../../../../C/Sha256.c
 	$(CC) $(CFLAGS) ../../../../C/Sha256.c
 Threads.o : ../../../../C/Threads.c
 	$(CC) $(CFLAGS) ../../../../C/Threads.c
+entropy_common.o : ../../../../C/ZStd/entropy_common.c
+	$(CC) $(CFLAGS) ../../../../C/ZStd/entropy_common.c
+error_private.o : ../../../../C/ZStd/error_private.c
+	$(CC) $(CFLAGS) ../../../../C/ZStd/error_private.c
+fse_decompress.o : ../../../../C/ZStd/fse_decompress.c
+	$(CC) $(CFLAGS) ../../../../C/ZStd/fse_decompress.c
+huf_decompress.o : ../../../../C/ZStd/huf_decompress.c
+	$(CC) $(CFLAGS) ../../../../C/ZStd/huf_decompress.c
+xxhash.o : ../../../../C/ZStd/xxhash.c
+	$(CC) $(CFLAGS) ../../../../C/ZStd/xxhash.c
+zstd_common.o : ../../../../C/ZStd/zstd_common.c
+	$(CC) $(CFLAGS) ../../../../C/ZStd/zstd_common.c
+zstd_decompress.o : ../../../../C/ZStd/zstd_decompress.c
+	$(CC) $(CFLAGS) ../../../../C/ZStd/zstd_decompress.c
+zstdmt_common.o : ../../../../C/zstdmt/zstdmt_common.c
+	$(CC) $(CFLAGS) ../../../../C/zstdmt/zstdmt_common.c
+zstdmt_decompress.o : ../../../../C/zstdmt/zstdmt_decompress.c
+	$(CC) $(CFLAGS) ../../../../C/zstdmt/zstdmt_decompress.c
 7zDecode.o : ../../../../CPP/7zip/Archive/7z/7zDecode.cpp
 	$(CXX) $(CXXFLAGS) ../../../../CPP/7zip/Archive/7z/7zDecode.cpp
 7zExtract.o : ../../../../CPP/7zip/Archive/7z/7zExtract.cpp
@@ -228,6 +257,10 @@ PpmdDecoder.o : ../../../../CPP/7zip/Compress/PpmdDecoder.cpp
 	$(CXX) $(CXXFLAGS) ../../../../CPP/7zip/Compress/PpmdDecoder.cpp
 PpmdRegister.o : ../../../../CPP/7zip/Compress/PpmdRegister.cpp
 	$(CXX) $(CXXFLAGS) ../../../../CPP/7zip/Compress/PpmdRegister.cpp
+ZstdDecoder.o : ../../../../CPP/7zip/Compress/ZstdDecoder.cpp
+	$(CXX) $(CXXFLAGS) ../../../../CPP/7zip/Compress/ZstdDecoder.cpp
+ZstdRegister.o : ../../../../CPP/7zip/Compress/ZstdRegister.cpp
+	$(CXX) $(CXXFLAGS) ../../../../CPP/7zip/Compress/ZstdRegister.cpp
 7zAes.o : ../../../../CPP/7zip/Crypto/7zAes.cpp
 	$(CXX) $(CXXFLAGS) ../../../../CPP/7zip/Crypto/7zAes.cpp
 7zAesRegister.o : ../../../../CPP/7zip/Crypto/7zAesRegister.cpp
@@ -326,6 +359,15 @@ OBJS=\
  Ppmd7Dec.o \
  Sha256.o \
  Threads.o \
+ entropy_common.o \
+ error_private.o \
+ fse_decompress.o \
+ huf_decompress.o \
+ xxhash.o \
+ zstd_common.o \
+ zstd_decompress.o \
+ zstdmt_common.o \
+ zstdmt_decompress.o \
  7zDecode.o \
  7zExtract.o \
  7zHandler.o \
@@ -364,6 +406,8 @@ OBJS=\
  LzmaRegister.o \
  PpmdDecoder.o \
  PpmdRegister.o \
+ ZstdDecoder.o \
+ ZstdRegister.o \
  7zAes.o \
  7zAesRegister.o \
  MyAes.o \

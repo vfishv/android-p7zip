@@ -344,8 +344,8 @@ static HRESULT UpdateItemOldData(
 
   if (ui.NewProps)
   {
-//    if (item.HasDescriptor())
-//      return E_NOTIMPL;
+    if (item.HasDescriptor())
+      return E_NOTIMPL;
     
     // use old name size.
     
@@ -584,7 +584,7 @@ static HRESULT Update2(
     CInArchive *inArchive,
     const CObjectVector<CItemEx> &inputItems,
     CObjectVector<CUpdateItem> &updateItems,
-    const CCompressionMethodMode &options,
+    const CCompressionMethodMode *options,
     const CByteBuffer *comment,
     IArchiveUpdateCallback *updateCallback)
 {
@@ -629,15 +629,17 @@ static HRESULT Update2(
 
   UInt64 totalComplexity = complexity;
 
-  CAddCommon compressor(options);
+  CAddCommon compressor(*options);
   
   complexity = 0;
   
-  CCompressionMethodMode options2 = options;
+  CCompressionMethodMode options2;
+  if (options != 0)
+    options2 = *options;
 
   #ifndef _7ZIP_ST
 
-  UInt32 numThreads = options.NumThreads;
+  UInt32 numThreads = options->NumThreads;
   const UInt32 kNumMaxThreads = 64;
   if (numThreads > kNumMaxThreads)
     numThreads = kNumMaxThreads;
@@ -650,12 +652,12 @@ static HRESULT Update2(
   const size_t kMemPerThread = (1 << 25);
   const size_t kBlockSize = 1 << 16;
 
-  bool mtMode = (numThreads > 1);
+  bool mtMode = ((options != 0) && (numThreads > 1));
 
   if (numFilesToCompress <= 1)
     mtMode = false;
 
-  Byte method = options.MethodSequence.Front();
+  Byte method = options->MethodSequence.Front();
 
   if (!mtMode)
   {
@@ -668,7 +670,7 @@ static HRESULT Update2(
   }
   else
   {
-    if (method == NFileHeader::NCompressionMethod::kStored && !options.PasswordIsDefined)
+    if (method == NFileHeader::NCompressionMethod::kStored && !options->PasswordIsDefined)
       numThreads = 1;
     if (method == NFileHeader::NCompressionMethod::kBZip2)
     {
@@ -860,16 +862,16 @@ static HRESULT Update2(
       
       if (isDir)
       {
-        WriteDirHeader(archive, &options, ui, item);
+        WriteDirHeader(archive, options, ui, item);
       }
       else
       {
         if (lastRealStreamItemIndex < (int)itemIndex)
         {
           lastRealStreamItemIndex = itemIndex;
-          SetFileHeader(archive, options, ui, item);
+          SetFileHeader(archive, *options, ui, item);
           // file Size can be 64-bit !!!
-          archive.PrepareWriteCompressedData(item.Name.Len(), ui.Size, options.IsRealAesMode());
+          archive.PrepareWriteCompressedData(item.Name.Len(), ui.Size, options->IsRealAesMode());
         }
 
         CMemBlocks2 &memRef = refs.Refs[itemIndex];
@@ -879,12 +881,12 @@ static HRESULT Update2(
           CMyComPtr<IOutStream> outStream;
           archive.CreateStreamForCompressing(&outStream);
           memRef.WriteToStream(memManager.GetBlockSize(), outStream);
-          SetFileHeader(archive, options, ui, item);
+          SetFileHeader(archive, *options, ui, item);
           // the BUG was fixed in 9.26:
           // SetItemInfoFromCompressingResult must be after SetFileHeader
           // to write correct Size.
           SetItemInfoFromCompressingResult(memRef.CompressingResult,
-              options.IsRealAesMode(), options.AesKeyMode, item);
+              options->IsRealAesMode(), options->AesKeyMode, item);
           archive.WriteLocalHeader_And_SeekToNextFile(item);
           // RINOK(updateCallback->SetOperationResult(NArchive::NUpdate::NOperationResult::kOK));
           memRef.FreeOpt(&memManager);
@@ -926,9 +928,9 @@ static HRESULT Update2(
           {
             RINOK(threadInfo.OutStreamSpec->WriteToRealStream());
             threadInfo.OutStreamSpec->ReleaseOutStream();
-            SetFileHeader(archive, options, ui, item);
+            SetFileHeader(archive, *options, ui, item);
             SetItemInfoFromCompressingResult(threadInfo.CompressingResult,
-                options.IsRealAesMode(), options.AesKeyMode, item);
+                options->IsRealAesMode(), options->AesKeyMode, item);
             archive.WriteLocalHeader_And_SeekToNextFile(item);
           }
           else
@@ -1179,7 +1181,7 @@ HRESULT Update(
     CObjectVector<CUpdateItem> &updateItems,
     ISequentialOutStream *seqOutStream,
     CInArchive *inArchive, bool removeSfx,
-    const CCompressionMethodMode &compressionMethodMode,
+    CCompressionMethodMode *compressionMethodMode,
     IArchiveUpdateCallback *updateCallback)
 {
   if (inArchive)

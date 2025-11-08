@@ -17,16 +17,6 @@ class CodecTools {
 	 */
 	int bzip2Index;
 
-	/**
-	 * Index of the xz archive format.
-	 */
-	int xzIndex;
-
-	/**
-	 * Index of the xz archive format.
-	 */
-	int zstdIndex;
-
 public:
 	CCodecs codecs;
 
@@ -36,6 +26,7 @@ public:
 	 * Retrieve 7-zip CCoders-index of the archive format.
 	 */
 	int getArchiveFormatIndex(JNIEnv * env, jobject archiveFormat);
+	void getArchiveFormatName(JNIEnv * env, jobject archiveFormat, UString & formatNameString);
 
 	bool isCabArchive(int index) {
 		return cabIndex == index;
@@ -46,13 +37,6 @@ public:
 	}
 	bool isBZip2Archive(int index) {
 		return bzip2Index == index;
-	}
-
-	bool isXZArchive(int index) {
-		return xzIndex == index;
-	}
-	bool isZstdArchive(int index) {
-		return xzIndex == index;
 	}
 };
 

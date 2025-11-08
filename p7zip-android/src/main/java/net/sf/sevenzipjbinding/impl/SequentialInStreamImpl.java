@@ -7,21 +7,25 @@ import net.sf.sevenzipjbinding.ISequentialInStream;
 import net.sf.sevenzipjbinding.SevenZipException;
 
 /**
- * Input stream based implementation of {@link ISequentialInStream}.
+ * Implementation of {@link ISequentialInStream} based on {@link InputStream}.
+ * 
+ * @deprecated use {@link InputStreamSequentialInStream}
  * 
  * @author Boris Brodski
- * @since 9.20-2.00
+ * @since 4.65-1
  */
-public class InputStreamSequentialInStream implements ISequentialInStream {
-    private final InputStream inputStream;
+@Deprecated
+// TODO Remove in the next release
+public class SequentialInStreamImpl implements ISequentialInStream {
+    private InputStream inputStream;
 
     /**
-     * Create new input stream based implementation of {@link ISequentialInStream}.
+     * Create instance of {@link SequentialInStreamImpl} based on {@link InputStream}
      * 
      * @param inputStream
-     *            base input stream.
+     *            input stream to use
      */
-    public InputStreamSequentialInStream(InputStream inputStream) {
+    public SequentialInStreamImpl(InputStream inputStream) {
         this.inputStream = inputStream;
     }
 
@@ -34,18 +38,18 @@ public class InputStreamSequentialInStream implements ISequentialInStream {
         }
 
         try {
-            int result = inputStream.read(data);
-            if (result < 0) {
+            int read = inputStream.read(data);
+            if (read < 0) {
                 return 0;
             }
-            return result;
+            return read;
         } catch (IOException e) {
-            throw new SevenZipException("Error reading " + data.length + " bytes out of InputStream", e);
+            throw new SevenZipException("Error reading input stream", e);
         }
     }
 
     /**
-     * Returns base input stream
+     * Get underlaying input stream
      * 
      * @return input stream
      */
@@ -54,6 +58,7 @@ public class InputStreamSequentialInStream implements ISequentialInStream {
     }
 
     public void close() throws IOException {
-        inputStream.close();
+        // TODO Auto-generated method stub
+
     }
 }
