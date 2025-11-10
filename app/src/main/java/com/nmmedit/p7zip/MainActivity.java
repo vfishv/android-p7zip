@@ -62,7 +62,12 @@ public class MainActivity extends AppCompatActivity {
         for (ISimpleInArchiveItem item : simpleInterface.archiveItems()) {
             String path = item.getPath();
             boolean isFolder = item.isFolder();
-            Log.i(TAG,  (isFolder?"+":"-") + " " + path);
+            String method = item.getMethod();
+            long size = item.getSize();
+            long packedSize = item.getPackedSize();
+            String isEncrypted = item.isEncrypted() ? "*" : "";
+            int itemIndex = item.getItemIndex();
+            Log.i(TAG, (isFolder ? "+" : "-") + itemIndex + " " + path + " " + size + "/" + packedSize + " " + method + " " + isEncrypted);
             if (isFolder) {
 
             } else {
