@@ -71,20 +71,19 @@ public class MainActivity extends AppCompatActivity {
             if (isFolder) {
 
             } else {
-                
-            }
-            if ("test/myzip.zip".equalsIgnoreCase(path)) {
-                inArchive.extract(new int[]{item.getItemIndex()}, false, new IArchiveExtractCallback() {
+                inArchive.extract(new int[]{itemIndex}, false, new IArchiveExtractCallback() {
                     @Override
                     public ISequentialOutStream getStream(int index, ExtractAskMode extractAskMode) throws SevenZipException {
+                        Log.d(TAG, "getStream: " + index + " " + extractAskMode);
                         return new ISequentialOutStream() {
                             @Override
                             public void close() throws IOException {
-
+                                Log.d(TAG, "close: ");
                             }
 
                             @Override
                             public int write(ByteBuffer dst, int len) throws SevenZipException {
+                                Log.d(TAG, "write: " + len);
                                 return len;
                             }
                         };
@@ -92,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void prepareOperation(ExtractAskMode extractAskMode) throws SevenZipException {
-                        Log.d(TAG, "prepareOperation: ");
+                        Log.d(TAG, "prepareOperation: " + extractAskMode);
 
                     }
 
