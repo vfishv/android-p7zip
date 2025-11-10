@@ -67,11 +67,16 @@ public class MainActivity extends AppCompatActivity {
             long packedSize = item.getPackedSize();
             String isEncrypted = item.isEncrypted() ? "*" : "";
             int itemIndex = item.getItemIndex();
+            Log.i(TAG, "---------------------------------------------------------------------------------------------");
             Log.i(TAG, (isFolder ? "+" : "-") + itemIndex + " " + path + " " + size + "/" + packedSize + " " + method + " " + isEncrypted);
             if (isFolder) {
 
             } else {
                 inArchive.extract(new int[]{itemIndex}, false, new IArchiveExtractCallback() {
+
+                    private long writeCount = 0;
+                    private long totalCount = 0;
+
                     @Override
                     public ISequentialOutStream getStream(int index, ExtractAskMode extractAskMode) throws SevenZipException {
                         Log.d(TAG, "getStream: " + index + " " + extractAskMode);
@@ -83,7 +88,9 @@ public class MainActivity extends AppCompatActivity {
 
                             @Override
                             public int write(ByteBuffer dst, int len) throws SevenZipException {
-                                Log.d(TAG, "write: " + len);
+                                writeCount += len;
+                                float percent = writeCount * 100.0f / totalCount;
+                                Log.d(TAG, "write: " + len + " " + writeCount + " " + percent + "%");
                                 return len;
                             }
                         };
@@ -103,17 +110,19 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void setTotal(long total) throws SevenZipException {
+                        totalCount = total;
                         Log.d(TAG, "setTotal: " + total);
                     }
 
                     @Override
                     public void setCompleted(long complete) throws SevenZipException {
-                        Log.d(TAG, "setCompleted: " + complete);
+                        float percent = complete * 100.0f / totalCount;
+                        Log.i(TAG, "setCompleted: " + complete + " " + percent + "%");
                     }
                 });
             }
         }
-        System.out.println("endTime " + (System.currentTimeMillis() - s));
+        Log.i(TAG,"endTime " + (System.currentTimeMillis() - s));
 
 
 //        int numberOfItems = inArchive.getNumberOfItems();
