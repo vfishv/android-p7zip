@@ -17,6 +17,7 @@ import net.sf.sevenzipjbinding.ExtractOperationResult;
 import net.sf.sevenzipjbinding.IArchiveExtractCallback;
 import net.sf.sevenzipjbinding.IInArchive;
 import net.sf.sevenzipjbinding.ISequentialOutStream;
+import net.sf.sevenzipjbinding.PropertyInfo;
 import net.sf.sevenzipjbinding.SevenZip;
 import net.sf.sevenzipjbinding.SevenZipException;
 import net.sf.sevenzipjbinding.impl.RandomAccessFileInStream;
@@ -56,6 +57,16 @@ public class MainActivity extends AppCompatActivity {
 
         IInArchive inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, new RandomAccessFileInStream(randomAccessFile));
 
+        ArchiveFormat format = inArchive.getArchiveFormat();
+        int archivePropertiesCount = inArchive.getNumberOfArchiveProperties();
+        int propertiesCount = inArchive.getNumberOfProperties();
+        Log.i(TAG, "format: " + format + " " + archivePropertiesCount + "," + propertiesCount);
+        for (int i = 0; i < archivePropertiesCount; i++) {
+            PropertyInfo prop = inArchive.getArchivePropertyInfo(i);
+            Log.i(TAG, "prop: " + i + " " + prop);
+            Log.i(TAG, "" + inArchive.getArchiveProperty(prop.propID));
+        }
+
         ISimpleInArchive simpleInterface = inArchive.getSimpleInterface();
         long s = System.currentTimeMillis();
 
@@ -69,6 +80,13 @@ public class MainActivity extends AppCompatActivity {
             int itemIndex = item.getItemIndex();
             Log.i(TAG, "---------------------------------------------------------------------------------------------");
             Log.i(TAG, (isFolder ? "+" : "-") + itemIndex + " " + path + " " + size + "/" + packedSize + " " + method + " " + isEncrypted);
+
+            for (int i = 0; i < propertiesCount; i++) {
+                PropertyInfo prop = inArchive.getPropertyInfo(i);
+                Log.i(TAG, "prop: " + i + " " + prop);
+                Log.i(TAG, "" + inArchive.getProperty(itemIndex, prop.propID));
+            }
+
             if (isFolder) {
 
             } else {
